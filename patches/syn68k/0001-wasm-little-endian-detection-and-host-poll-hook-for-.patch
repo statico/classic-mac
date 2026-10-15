@@ -1,0 +1,88 @@
+From a26d352e75053addf57868a826b4e681ef9305c3 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Wed, 14 Oct 2026 21:57:33 -0700
+Subject: [PATCH] wasm: little-endian detection and host poll hook for
+ Emscripten
+
+---
+ include/syn68k_public.h | 11 +++++++++--
+ runtime/interrupt.c     |  5 +++++
+ runtime/syn68k_header.h |  9 +++++++++
+ 3 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/include/syn68k_public.h b/include/syn68k_public.h
+index 5373f83..6da10dc 100644
+--- a/include/syn68k_public.h
++++ b/include/syn68k_public.h
+@@ -19,7 +19,7 @@ extern "C"
+ # elif defined(__alpha) || defined(i860) || defined(vax) || defined(i386) \
+      || defined(__x86_64) || defined(__x86_64__) \
+      || defined (_M_X64) || defined(_M_IX86) \
+-     || defined(__arm__) || defined(__aarch64__)
++     || defined(__arm__) || defined(__aarch64__) || defined(__wasm__)
+ #  define LITTLEENDIAN
+ # else
+ #  error "Unknown CPU type"
+@@ -45,7 +45,7 @@ extern "C"
+        && !defined (__ppc__) && !defined(__x86_64) \
+        && !defined(__x86_64) && !defined(__x86_64__) \
+        && !defined (_M_X64) && !defined(_M_IX86) \
+-       && !defined(__arm__) && !defined(__aarch64__)
++       && !defined(__arm__) && !defined(__aarch64__) && !defined(__wasm__)
+ 
+ #  error Unknown CPU type
+ # endif
+@@ -515,6 +515,13 @@ extern syn68k_addr_t interrupt_process_any_pending(syn68k_addr_t pc)
+ #endif /* SYNCHRONOUS_INTERRUPTS */
+ 
+ extern void interpret_code (const uint16 *code);
++
++#ifdef __EMSCRIPTEN__
++/* Called every SYN68K_POLL_INTERVAL blocks from the interpreter. */
++#define SYN68K_POLL_INTERVAL 20000
++extern int32 syn68k_poll_countdown;
++extern void (*syn68k_poll_hook) (void);
++#endif
+ /* called from asm; hence the need for the asm label, see
+    `host_interrupt_status_changed' stub asm in host-native.c */
+ extern const uint16 *hash_lookup_code_and_create_if_needed(syn68k_addr_t adr)
+diff --git a/runtime/interrupt.c b/runtime/interrupt.c
+index 5071aa2..687bbf8 100644
+--- a/runtime/interrupt.c
++++ b/runtime/interrupt.c
+@@ -1,5 +1,10 @@
+ #include "interrupt.h"
+ 
++#ifdef __EMSCRIPTEN__
++int32 syn68k_poll_countdown = SYN68K_POLL_INTERVAL;
++void (*syn68k_poll_hook) (void);
++#endif
++
+ #ifdef SYNCHRONOUS_INTERRUPTS
+ 
+ #include "trap.h"
+diff --git a/runtime/syn68k_header.h b/runtime/syn68k_header.h
+index da520dd..ed88fb5 100644
+--- a/runtime/syn68k_header.h
++++ b/runtime/syn68k_header.h
+@@ -110,8 +110,17 @@ reset_frequency ()
+ 
+ 
+ #ifdef SYNCHRONOUS_INTERRUPTS
++#ifdef __EMSCRIPTEN__
++/* No signals in wasm: periodically call back into the host so it can
++   raise timer interrupts and yield to the browser. */
++# define POLL_HOST() \
++  if (--syn68k_poll_countdown < 0) { syn68k_poll_countdown = SYN68K_POLL_INTERVAL; if (syn68k_poll_hook) syn68k_poll_hook (); }
++#else
++# define POLL_HOST()
++#endif
+ # define CHECK_FOR_INTERRUPT(pc)			\
+ {							\
++  POLL_HOST ()						\
+   if (INTERRUPT_PENDING ())				\
+     {							\
+       syn68k_addr_t __pc;				\
+-- 
+2.54.0
+

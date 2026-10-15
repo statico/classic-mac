@@ -1,0 +1,25 @@
+From 30c458f97c4914faf9c547486af77dd292bd292f Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Wed, 14 Oct 2026 21:57:33 -0700
+Subject: [PATCH] wasm: little-endian detection for Emscripten
+
+---
+ src/PowerCoreInlines.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/PowerCoreInlines.h b/src/PowerCoreInlines.h
+index 550f9e1..265d731 100644
+--- a/src/PowerCoreInlines.h
++++ b/src/PowerCoreInlines.h
+@@ -9,7 +9,7 @@
+ #elif defined(i386) \
+      || defined(__x86_64) || defined(__x86_64__) \
+      || defined (_M_X64) || defined(_M_IX86) \
+-     || defined(__arm__) || defined(__aarch64__)
++     || defined(__arm__) || defined(__aarch64__) || defined(__wasm__)
+ #define LITTLEENDIAN
+ #else
+ #error "Unknown CPU type"
+-- 
+2.54.0
+

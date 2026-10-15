@@ -1,0 +1,654 @@
+From 872908ab51af8008d4a8eda0ade0fe456eef4589 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Wed, 14 Oct 2026 21:57:33 -0700
+Subject: [PATCH] wasm: Emscripten front end and build support
+
+---
+ CMakeLists.txt                               | 13 ++-
+ src/CMakeLists.txt                           | 12 +++
+ src/base/byteswap.h                          |  2 +-
+ src/config/front-ends/wasm/CMakeLists.txt    |  5 ++
+ src/config/front-ends/wasm/default_vdriver.h |  3 +
+ src/config/front-ends/wasm/wasm.cpp          | 92 ++++++++++++++++++++
+ src/config/front-ends/wasm/wasm.h            | 25 ++++++
+ src/main.cpp                                 | 11 ++-
+ src/osutil.cpp                               |  2 +-
+ src/quickdraw/rawpatblt.cpp                  |  4 +-
+ src/quickdraw/rawsrcblt.cpp                  |  4 +-
+ src/serial.cpp                               | 28 +++---
+ src/time/syncint.cpp                         | 63 ++++++++++++++
+ src/util/macstrings.h                        | 47 ++++++++++
+ src/vdriver/vdriver.cpp                      |  4 +
+ 15 files changed, 294 insertions(+), 21 deletions(-)
+ create mode 100644 src/config/front-ends/wasm/CMakeLists.txt
+ create mode 100644 src/config/front-ends/wasm/default_vdriver.h
+ create mode 100644 src/config/front-ends/wasm/wasm.cpp
+ create mode 100644 src/config/front-ends/wasm/wasm.h
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 31e25776..4a348d20 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -80,7 +80,18 @@ add_subdirectory(syn68k)
+ add_subdirectory(PowerCore)
+ add_subdirectory(cxmon)
+ add_subdirectory(src)
+-add_subdirectory(tests)
++if(NOT EMSCRIPTEN)
++    add_subdirectory(tests)
++endif()
++
++if(EMSCRIPTEN)
++    # Build-time generator tools run under node and need the host filesystem.
++    foreach(tool syngen map_to_c mkseedtables mkultable mksspairtable powergenerator)
++        if(TARGET ${tool})
++            target_link_options(${tool} PRIVATE -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1)
++        endif()
++    endforeach()
++endif()
+ 
+ macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
+     get_target_property(_qt_plugin_path "${_qt_plugin_name}" LOCATION)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 3412f99b..3f7a1a6e 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -107,6 +107,7 @@ add_subdirectory(config/front-ends/sdl2)
+ add_subdirectory(config/front-ends/qt)
+ add_subdirectory(config/front-ends/wayland)
+ add_subdirectory(config/front-ends/headless)
++add_subdirectory(config/front-ends/wasm)
+ 
+ function(linkheader from to variant)
+     if(DEFINED ARGV3)
+@@ -665,3 +666,14 @@ if(APPLE AND NOT ${DEFAULT_FRONT_END} STREQUAL headless)
+ else()
+     set_target_properties(executor-${DEFAULT_FRONT_END} PROPERTIES OUTPUT_NAME executor)
+ endif()
++
++if(EMSCRIPTEN AND TARGET executor-wasm)
++    target_link_options(executor-wasm PRIVATE
++        -fexceptions
++        -sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=1048576
++        -sSTACK_SIZE=8MB
++        -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=128MB
++        -sFORCE_FILESYSTEM=1 -sINVOKE_RUN=0 -sEXIT_RUNTIME=0
++        -sENVIRONMENT=web
++        -sEXPORTED_RUNTIME_METHODS=FS,callMain,HEAPU8)
++endif()
+diff --git a/src/base/byteswap.h b/src/base/byteswap.h
+index a6b93c9f..88458d2c 100644
+--- a/src/base/byteswap.h
++++ b/src/base/byteswap.h
+@@ -12,7 +12,7 @@
+ #elif defined(i386) \
+      || defined(__x86_64) || defined(__x86_64__) \
+      || defined (_M_X64) || defined(_M_IX86) \
+-     || defined(__arm__)
++     || defined(__arm__) || defined(__wasm__)
+ #define LITTLEENDIAN
+ #else
+ #error "Unknown CPU type"
+diff --git a/src/config/front-ends/wasm/CMakeLists.txt b/src/config/front-ends/wasm/CMakeLists.txt
+new file mode 100644
+index 00000000..feb42296
+--- /dev/null
++++ b/src/config/front-ends/wasm/CMakeLists.txt
+@@ -0,0 +1,5 @@
++if(EMSCRIPTEN)
++    add_library(front-end-wasm default_vdriver.h wasm.h wasm.cpp)
++    target_link_libraries(front-end-wasm syn68k romlib)
++    target_include_directories(front-end-wasm PUBLIC .)
++endif()
+diff --git a/src/config/front-ends/wasm/default_vdriver.h b/src/config/front-ends/wasm/default_vdriver.h
+new file mode 100644
+index 00000000..4db81dfd
+--- /dev/null
++++ b/src/config/front-ends/wasm/default_vdriver.h
+@@ -0,0 +1,3 @@
++#include "wasm.h"
++
++using DefaultVDriver = WasmVideoDriver;
+diff --git a/src/config/front-ends/wasm/wasm.cpp b/src/config/front-ends/wasm/wasm.cpp
+new file mode 100644
+index 00000000..7aa610f8
+--- /dev/null
++++ b/src/config/front-ends/wasm/wasm.cpp
+@@ -0,0 +1,92 @@
++#include "wasm.h"
++#include <emscripten.h>
++
++using namespace Executor;
++
++static WasmVideoDriver *instance;
++
++WasmVideoDriver::WasmVideoDriver(IEventListener *listener, int&, char*[])
++    : VideoDriver(listener)
++{
++    instance = this;
++}
++
++bool WasmVideoDriver::setMode(int width, int height, int bpp, bool grayscale_p)
++{
++    if(!width || !height)
++    {
++        width = framebuffer_.width ? framebuffer_.width : 640;
++        height = framebuffer_.height ? framebuffer_.height : 480;
++    }
++    if(!bpp)
++        bpp = framebuffer_.bpp ? framebuffer_.bpp : 8;
++
++    framebuffer_ = Framebuffer(width, height, bpp);
++    framebuffer_.grayscale = grayscale_p;
++    rgba_.assign(width * height, 0xFF000000);
++
++    EM_ASM({ if(Module.executorSetMode) Module.executorSetMode($0, $1); }, width, height);
++    dirtyRects_.add(0, 0, height, width);
++    return true;
++}
++
++void WasmVideoDriver::present()
++{
++    DirtyRects::Rects rects;
++    {
++        std::lock_guard lk(mutex_);
++        if(dirtyRects_.empty())
++            return;
++        rects = dirtyRects_.getAndClear();
++    }
++    int w = width(), h = height();
++    updateBuffer(framebuffer_, rgba_.data(), w, h, rects);
++
++    // updateBuffer produces 0xAARRGGBB; canvas ImageData wants R,G,B,A bytes.
++    for(const auto& r : rects)
++        for(int y = r.top; y < r.bottom && y < h; y++)
++            for(uint32_t *p = &rgba_[y * w + r.left], *e = &rgba_[y * w + std::min(r.right, w)]; p < e; p++)
++                *p = (*p & 0xFF00FF00) | ((*p >> 16) & 0xFF) | ((*p & 0xFF) << 16) | 0xFF000000;
++
++    EM_ASM({ Module.executorBlit($0, $1, $2); }, rgba_.data(), w, h);
++}
++
++void WasmVideoDriver::endEventLoop()
++{
++    EM_ASM({ if(Module.executorExited) Module.executorExited(); });
++}
++
++void WasmVideoDriver::beepAtUser()
++{
++    EM_ASM({ if(Module.executorBeep) Module.executorBeep(); });
++}
++
++// Called from syncint.cpp whenever the emulator idles or has run for a while.
++void executor_wasm_yield(int ms)
++{
++    if(instance)
++        instance->present();
++    emscripten_sleep(ms);
++}
++
++extern "C" {
++
++EMSCRIPTEN_KEEPALIVE void executor_mouse_moved(int h, int v)
++{
++    if(instance)
++        instance->listener()->mouseMoved(h, v);
++}
++
++EMSCRIPTEN_KEEPALIVE void executor_mouse_button(int down, int h, int v)
++{
++    if(instance)
++        instance->listener()->mouseButtonEvent(down != 0, h, v);
++}
++
++EMSCRIPTEN_KEEPALIVE void executor_key(int down, int mkvkey)
++{
++    if(instance)
++        instance->listener()->keyboardEvent(down != 0, (unsigned char)mkvkey);
++}
++
++}
+diff --git a/src/config/front-ends/wasm/wasm.h b/src/config/front-ends/wasm/wasm.h
+new file mode 100644
+index 00000000..96798fe4
+--- /dev/null
++++ b/src/config/front-ends/wasm/wasm.h
+@@ -0,0 +1,25 @@
++#pragma once
++
++#include <vdriver/vdriver.h>
++#include <vector>
++
++// Single-threaded browser video driver.  The emulator runs on the browser
++// main thread; it calls executor_wasm_yield() (see syncint.cpp) to present
++// the screen and let the browser deliver input events.
++class WasmVideoDriver : public Executor::VideoDriver
++{
++public:
++    WasmVideoDriver(Executor::IEventListener *listener, int& argc, char* argv[]);
++
++    bool setMode(int width, int height, int bpp, bool grayscale_p) override;
++    void runEventLoop() override {}
++    void endEventLoop() override;
++    void beepAtUser() override;
++
++    void present();
++    Executor::IEventListener *listener() { return callbacks_; }
++
++private:
++    void requestUpdate() override {}
++    std::vector<uint32_t> rgba_;
++};
+diff --git a/src/main.cpp b/src/main.cpp
+index abdae643..a4816f56 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -444,7 +444,7 @@ int main(int argc, char **argv)
+     checkBadArgs(remainingArgs);
+     argsHack = remainingArgs;
+ 
+-    auto executorThread = std::thread([&] {
++    auto executorBody = [&] {
+         try
+         {
+             if(ERROR_ENABLED_P(ERROR_SEGFAULT))
+@@ -536,10 +536,17 @@ int main(int argc, char **argv)
+         }
+ 
+         vdriver->endEventLoop();
+-    });
++    };
+ 
++#ifdef __EMSCRIPTEN__
++    // No threads: run the emulator on the browser main thread (ASYNCIFY
++    // lets it yield back to the browser, see syncint.cpp).
++    executorBody();
++#else
++    auto executorThread = std::thread(executorBody);
+     vdriver->runEventLoop();
+     executorThread.join();
++#endif
+ 
+     vdriver.reset();
+ 
+diff --git a/src/osutil.cpp b/src/osutil.cpp
+index 3fd41c99..af060efb 100644
+--- a/src/osutil.cpp
++++ b/src/osutil.cpp
+@@ -340,7 +340,7 @@ OSErr Executor::ReadDateTime(GUEST<ULONGINT> *secs)
+ 
+ OSErr Executor::SetDateTime(ULONGINT mactime)
+ {
+-#if !defined(_WIN32)
++#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+     struct timeval thetime;
+ 
+     thetime.tv_sec = MACTIMETOGUNIXTIME(mactime);
+diff --git a/src/quickdraw/rawpatblt.cpp b/src/quickdraw/rawpatblt.cpp
+index be30ba7b..a92380a7 100644
+--- a/src/quickdraw/rawpatblt.cpp
++++ b/src/quickdraw/rawpatblt.cpp
+@@ -195,7 +195,9 @@ fetch_next_y:
+     num_rows = next_y - y;
+ 
+     /* Call the blitter function. */
+-    ((void (*)(const blt_section_t *, uint8_t *, long, long))
++    /* wasm: indirect calls trap unless the signature matches exactly --
++     * the generated blitters return const void* const*, so cast to that. */
++    ((const void *const *(*)(const blt_section_t *, uint8_t *, long, long))
+          xdblt_stub_table[FUNC_PTR])(section,
+                                      ((uint8_t *)xdblt_dst_baseaddr
+                                       + (y * (int)xdblt_dst_row_bytes)),
+diff --git a/src/quickdraw/rawsrcblt.cpp b/src/quickdraw/rawsrcblt.cpp
+index 33921c56..de2576d1 100644
+--- a/src/quickdraw/rawsrcblt.cpp
++++ b/src/quickdraw/rawsrcblt.cpp
+@@ -209,7 +209,9 @@ fetch_next_y:
+ 
+         first_y = srcblt_reverse_scanlines_p ? (next_y - 1) : y;
+ 
+-        ((void (*)(const blt_section_t *, const uint8_t *, uint8_t *, long))
++        /* wasm: exact-signature indirect call; generated blitters return
++         * const void* const*. */
++        ((const void *const *(*)(const blt_section_t *, const uint8_t *, uint8_t *, long))
+              srcblt_stub_table[FUNC_PTR])(section,
+                                           ((const uint8_t *)srcblt_src_baseaddr
+                                            + (first_y * srcblt_src_row_bytes)),
+diff --git a/src/serial.cpp b/src/serial.cpp
+index 7af1ac59..52927207 100644
+--- a/src/serial.cpp
++++ b/src/serial.cpp
+@@ -46,7 +46,7 @@
+ #include <termios.h>
+ #endif
+ 
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+ #include <sys/ioctl.h>
+ #endif
+ 
+@@ -61,7 +61,7 @@ using namespace Executor;
+  * list is narrow only because the sgtty fallback has never been retested,
+  * not because anything here is Linux-specific.  See the __APPLE__ block
+  * at the top of the file. */
+-#if defined(__alpha) || defined(__linux__)
++#if defined(__alpha) || defined(__linux__) || defined(__EMSCRIPTEN__)
+ #define USE_TERMIOS
+ #endif
+ 
+@@ -257,7 +257,7 @@ static DCtlPtr otherdctl(ParmBlkPtr pbp)
+     return h ? *h : 0;
+ }
+ 
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+ 
+ /*
+  * NOTE:  Currently we're using cufa and cufb; we really should
+@@ -379,7 +379,7 @@ static OSErr C_ROMlib_serialopen(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+     OSErr err;
+     DCtlPtr otherp;
+     hiddenh h;
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+     const char *devname;
+ #endif
+ 
+@@ -396,7 +396,7 @@ static OSErr C_ROMlib_serialopen(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+         }
+         else
+         {
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+             err = permErr;
+             if((devname = specialname(pbp)))
+             {
+@@ -405,7 +405,7 @@ static OSErr C_ROMlib_serialopen(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+ #endif
+             if(err == noErr)
+             {
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                 (*h)->fd = open(devname, O_RDWR, 0);
+                 if((*h)->fd < 0)
+                     err = ROMlib_maperrno();
+@@ -423,7 +423,7 @@ static OSErr C_ROMlib_serialopen(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+                     dcp->dCtlFlags |= OPENBIT;
+                     SerReset(pbp->cntrlParam.ioCRefNum,
+                              (pbp->cntrlParam.ioCRefNum == AINREFNUM || pbp->cntrlParam.ioCRefNum == AOUTREFNUM) ? LM(SPPortA) : LM(SPPortB));
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                 }
+ #endif
+             }
+@@ -463,7 +463,7 @@ static OSErr C_ROMlib_serialprime(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+                 {
+ /* this may have to be changed since we aren't looking for
+ 		   parity and framing errors */
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                     pbp->ioParam.ioActCount = read((*h)->fd, buf, req_count);
+ #elif defined(_WIN32)
+                     pbp->ioParam.ioActCount = serial_bios_read((*h)->fd, buf,
+@@ -488,7 +488,7 @@ static OSErr C_ROMlib_serialprime(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+                                        (LONGINT)req_count,
+                                        (LONGINT)(unsigned char)buf[0]);
+ #endif
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                     pbp->ioParam.ioActCount = write((*h)->fd,
+                                                        buf, req_count);
+ #elif defined(_WIN32)
+@@ -971,7 +971,7 @@ static OSErr C_ROMlib_serialctl(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+             case kSERDSendXOn:
+                 err = controlErr; /* not supported */
+                 break;
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+             case kSERDSendXOnOut:
+             {
+                 char c = XONC;
+@@ -982,7 +982,7 @@ static OSErr C_ROMlib_serialctl(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+             case kSERDSendXOff:
+                 err = controlErr; /* not supported */
+                 break;
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+             case kSERDSendXOffOut:
+             {
+                 char c = XOFFC;
+@@ -1025,7 +1025,7 @@ static OSErr C_ROMlib_serialstatus(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+         switch(pbp->cntrlParam.csCode)
+         {
+             case kSERDInputCount:
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                 if(ioctl((*h)->fd, FIONREAD, &n) < 0)
+ #else
+                 if(serial_bios_fionread((*h)->fd, &n) < 0)
+@@ -1041,7 +1041,7 @@ static OSErr C_ROMlib_serialstatus(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+                 }
+                 break;
+             case kSERDStatus:
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+                 if(ioctl((*h)->fd, FIONREAD, &n) < 0)
+ #else
+                 if(serial_bios_fionread((*h)->fd, &n) < 0)
+@@ -1071,7 +1071,7 @@ static OSErr C_ROMlib_serialstatus(ParmBlkPtr pbp, DCtlPtr dcp) /* INTERNAL */
+ 
+ static void restorecloseanddispose(hiddenh h)
+ {
+-#if defined(__linux__) || defined(__APPLE__)
++#if defined(__linux__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
+ #if defined(USE_TERMIOS)
+     tcsetattr((*h)->fd, TCSADRAIN, &(*h)->state);
+ #else
+diff --git a/src/time/syncint.cpp b/src/time/syncint.cpp
+index 887963f0..ac780f73 100644
+--- a/src/time/syncint.cpp
++++ b/src/time/syncint.cpp
+@@ -11,6 +11,9 @@
+ #if defined(_WIN32)
+ #define USE_TIMER_THREAD 1
+ #define USE_SIGNALS 0
++#elif defined(__EMSCRIPTEN__)
++#define USE_TIMER_THREAD 0
++#define USE_SIGNALS 0
+ #else
+ #define USE_TIMER_THREAD 0
+ #define USE_SIGNALS 1
+@@ -22,6 +25,10 @@
+ #include <mutex>
+ #include <condition_variable>
+ #else
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++void executor_wasm_yield(int ms); // config/front-ends/wasm
++#endif
+ #include <unistd.h>
+ #include <sys/time.h>
+ #include <signal.h>
+@@ -59,6 +66,12 @@ namespace
+         bool terminate = false;
+         clock::time_point last_interrupt;
+         clock::time_point scheduled_interrupt;
++#elif defined(__EMSCRIPTEN__)
++        // Single-threaded: the timer is a deadline that gets polled from the
++        // interpreter (syn68k_poll_hook) and from idle waits.
++        double deadline = 0;
++        double lastYield = 0;
++        void poll(bool mayYield);
+ #endif
+ 
+         SyncintTimer();
+@@ -94,6 +107,8 @@ void Interrupt::trigger()
+ 
+ #if USE_TIMER_THREAD
+     wake_cond.notify_all();
++#elif defined(__EMSCRIPTEN__)
++    (void)waitingThread;
+ #else
+     if(waitingThread && !pthread_equal(pthread_self(), *waitingThread))
+         pthread_kill(*waitingThread, SIGALRM);
+@@ -167,6 +182,9 @@ void Interrupt::handlePowerPC(PowerCore& cpu)
+ 
+ void Executor::syncint_check_interrupt()
+ {
++#ifdef __EMSCRIPTEN__
++    timer.poll(true);
++#endif
+     if(INTERRUPT_PENDING())
+     {
+         syn68k_addr_t pc;
+@@ -183,6 +201,7 @@ SyncintTimer::SyncintTimer()
+ {
+ #if USE_TIMER_THREAD
+     last_interrupt = scheduled_interrupt = clock::now();
++#elif defined(__EMSCRIPTEN__)
+ #else
+     sigset_t sigs;
+     sigemptyset(&sigs);
+@@ -191,8 +210,31 @@ SyncintTimer::SyncintTimer()
+ #endif
+ }
+ 
++#ifdef __EMSCRIPTEN__
++void SyncintTimer::poll(bool mayYield)
++{
++    double now = emscripten_get_now();
++    if(deadline && now >= deadline)
++    {
++        deadline = 0;
++        timerInterrupt.trigger();
++    }
++    // Keep the browser responsive (screen updates, input) while the
++    // emulated program is busy.
++    if(mayYield && now - lastYield > 20)
++    {
++        lastYield = now;
++        executor_wasm_yield(0);
++    }
++}
++#endif
++
+ void SyncintTimer::start()
+ {
++#ifdef __EMSCRIPTEN__
++    syn68k_poll_hook = [] { timer.poll(true); };
++    return;
++#endif
+ #if USE_TIMER_THREAD
+     thread = std::thread([this] {
+         std::unique_lock<std::mutex> lock(mutex);
+@@ -249,6 +291,13 @@ SyncintTimer::~SyncintTimer()
+ 
+ void SyncintTimer::post(std::chrono::microseconds usecs, bool fromLast)
+ {
++#ifdef __EMSCRIPTEN__
++    // same semantics as setitimer(): replace any pending timer
++    deadline = emscripten_get_now() + usecs.count() / 1000.0;
++    if(deadline == 0)
++        deadline = 1e-9;
++    return;
++#endif
+ #if USE_TIMER_THREAD
+     std::unique_lock<std::mutex> lock(mutex);
+ 
+@@ -273,6 +322,20 @@ void SyncintTimer::post(std::chrono::microseconds usecs, bool fromLast)
+ 
+ void SyncintTimer::wait()
+ {
++#ifdef __EMSCRIPTEN__
++    while(!INTERRUPT_PENDING())
++    {
++        poll(false);
++        if(INTERRUPT_PENDING())
++            break;
++        double ms = 16;
++        if(deadline)
++            ms = std::max(0.0, std::min(ms, deadline - emscripten_get_now()));
++        lastYield = emscripten_get_now();
++        executor_wasm_yield((int)ms);
++    }
++    return;
++#endif
+ #if USE_TIMER_THREAD
+     using namespace std::literals::chrono_literals;
+ 
+diff --git a/src/util/macstrings.h b/src/util/macstrings.h
+index 45578e07..8c897b67 100644
+--- a/src/util/macstrings.h
++++ b/src/util/macstrings.h
+@@ -4,6 +4,53 @@
+ #include <string_view>
+ #include <rsys/filesystem.h>
+ #include <base/mactype.h>
++#include <cstring>
++
++#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 190000
++// libc++ 19 removed the generic std::char_traits template.
++template<>
++struct std::char_traits<unsigned char>
++{
++    using char_type = unsigned char;
++    using int_type = int;
++    using off_type = std::streamoff;
++    using pos_type = std::streampos;
++    using state_type = std::mbstate_t;
++
++    static constexpr void assign(char_type& a, const char_type& b) noexcept { a = b; }
++    static constexpr bool eq(char_type a, char_type b) noexcept { return a == b; }
++    static constexpr bool lt(char_type a, char_type b) noexcept { return a < b; }
++    static constexpr int compare(const char_type* a, const char_type* b, size_t n)
++    {
++        for(; n; --n, ++a, ++b)
++            if(*a != *b)
++                return *a < *b ? -1 : 1;
++        return 0;
++    }
++    static constexpr size_t length(const char_type* s)
++    {
++        size_t n = 0;
++        while(s[n])
++            ++n;
++        return n;
++    }
++    static constexpr const char_type* find(const char_type* s, size_t n, const char_type& c)
++    {
++        for(; n; --n, ++s)
++            if(*s == c)
++                return s;
++        return nullptr;
++    }
++    static char_type* move(char_type* d, const char_type* s, size_t n) { return (char_type*)std::memmove(d, s, n); }
++    static char_type* copy(char_type* d, const char_type* s, size_t n) { return (char_type*)std::memcpy(d, s, n); }
++    static char_type* assign(char_type* d, size_t n, char_type c) { return (char_type*)std::memset(d, c, n); }
++    static constexpr int_type not_eof(int_type c) noexcept { return c == eof() ? 0 : c; }
++    static constexpr char_type to_char_type(int_type c) noexcept { return (char_type)c; }
++    static constexpr int_type to_int_type(char_type c) noexcept { return c; }
++    static constexpr bool eq_int_type(int_type a, int_type b) noexcept { return a == b; }
++    static constexpr int_type eof() noexcept { return -1; }
++};
++#endif
+ 
+ namespace Executor
+ {
+diff --git a/src/vdriver/vdriver.cpp b/src/vdriver/vdriver.cpp
+index f865e95f..a708b40e 100644
+--- a/src/vdriver/vdriver.cpp
++++ b/src/vdriver/vdriver.cpp
+@@ -38,7 +38,11 @@ class VideoDriver::ThreadPool
+ public:
+     ThreadPool()
+     {
++#ifdef __EMSCRIPTEN__
++        int nThreads = 0;
++#else
+         int nThreads = std::thread::hardware_concurrency() ? std::max(0, (int)std::thread::hardware_concurrency() - 2) : 4;
++#endif
+         
+         for(int i = 0; i < nThreads; i++)
+             threads_.emplace_back([this]() {
+-- 
+2.54.0
+
