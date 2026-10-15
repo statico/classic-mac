@@ -1,0 +1,78 @@
+From 5304d9e49605a3469d97af6586a760d522dee80d Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Wed, 14 Oct 2026 22:26:30 -0700
+Subject: [PATCH] wasm: hold mouseUp until the app has fetched mouseDown
+
+Short browser clicks were missed by StillDown-based tracking (TrackControl,
+SimCity 2000's buttons) when the app was busy.
+---
+ src/config/front-ends/wasm/wasm.cpp | 35 +++++++++++++++++++++++++++--
+ 1 file changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/src/config/front-ends/wasm/wasm.cpp b/src/config/front-ends/wasm/wasm.cpp
+index 7aa610f8..e27dc603 100644
+--- a/src/config/front-ends/wasm/wasm.cpp
++++ b/src/config/front-ends/wasm/wasm.cpp
+@@ -1,5 +1,7 @@
+ #include "wasm.h"
+ #include <emscripten.h>
++#include <EventMgr.h>
++#include <OSEvent.h>
+ 
+ using namespace Executor;
+ 
+@@ -61,11 +63,30 @@ void WasmVideoDriver::beepAtUser()
+     EM_ASM({ if(Module.executorBeep) Module.executorBeep(); });
+ }
+ 
++// A browser click can be shorter than the app takes to fetch its mouseDown.
++// If the button already reads "up" by then, StillDown-based tracking (TrackControl,
++// SimCity's buttons) sees no press. So hold the mouseUp until the mouseDown has
++// left the event queue, plus a couple of yields for the app to start tracking.
++static bool upPending;
++static int upH, upV, upHeldYields;
++
++static void deliverPendingUp()
++{
++    upPending = false;
++    upHeldYields = 0;
++    instance->listener()->mouseButtonEvent(false, upH, upV);
++}
++
+ // Called from syncint.cpp whenever the emulator idles or has run for a while.
+ void executor_wasm_yield(int ms)
+ {
+     if(instance)
++    {
++        EventRecord evt;
++        if(upPending && !OSEventAvail(mDownMask, &evt) && ++upHeldYields >= 2)
++            deliverPendingUp();
+         instance->present();
++    }
+     emscripten_sleep(ms);
+ }
+ 
+@@ -79,8 +100,18 @@ EMSCRIPTEN_KEEPALIVE void executor_mouse_moved(int h, int v)
+ 
+ EMSCRIPTEN_KEEPALIVE void executor_mouse_button(int down, int h, int v)
+ {
+-    if(instance)
+-        instance->listener()->mouseButtonEvent(down != 0, h, v);
++    if(!instance)
++        return;
++    if(!down)
++    {
++        upPending = true;
++        upH = h;
++        upV = v;
++        return;
++    }
++    if(upPending) // fast double-click: finish the previous click first
++        deliverPendingUp();
++    instance->listener()->mouseButtonEvent(true, h, v);
+ }
+ 
+ EMSCRIPTEN_KEEPALIVE void executor_key(int down, int mkvkey)
+-- 
+2.54.0
+
