@@ -1,0 +1,25 @@
+SimCity 2000/SimCity 2000™ 1.1 Read Me: type=TEXT creator=ttxt data=12187 rsrc=0
+SimCity 2000/SimCity2000™ 1.1: type=APPL creator=SCDH data=0 rsrc=2789098
+  types: BNDLx1 CODEx16 CRELx13 CURSx30 DATAx7 DRELx1 FREFx3 ICN#x3 INSTx17 MBARx1 MDEFx1 MDRVx1 MENUx11 MIDIx19 PICTx65 SCDHx1 SIZEx1 SONGx18 SPRTx3 STR#x5 STRSx1 TEXTx168 TMPLx2 WDEFx1 WINDx3 ZEROx1 clutx3 icl4x3 icl8x3 ics#x3 ics4x3 ics8x3 plttx3 sndx45 stylx1 versx2
+  CODE: 0:2264 1:1234 2:11474 3:25746 4:28954 5:29986 6:24320 7:12050 8:19514 9:14196 10:19184 11:22714 12:20736 13:28044 14:16614 15:9514
+  68k CODE: yes; PPC cfrg: no
+SimCity 2000/Cities/Charleston: type=SCEN creator=SCDH data=85882 rsrc=7519
+  types: PICTx1 SCENx1 TEXTx2 TMPLx1
+  68k CODE: no; PPC cfrg: no
+SimCity 2000/Cities/Dullsville: type=SCEN creator=SCDH data=61402 rsrc=6231
+  types: PICTx1 SCENx1 TEXTx2 TMPLx1
+  68k CODE: no; PPC cfrg: no
+SimCity 2000/Cities/Flint: type=SCEN creator=SCDH data=117600 rsrc=6715
+  types: PICTx1 SCENx1 TEXTx2 TMPLx1
+  68k CODE: no; PPC cfrg: no
+SimCity 2000/Cities/Happyland: type=CITY creator=SCDH data=70737 rsrc=0
+SimCity 2000/Cities/Hollywood: type=SCEN creator=SCDH data=114106 rsrc=6369
+  types: PICTx1 SCENx1 TEXTx2 TMPLx1
+  68k CODE: no; PPC cfrg: no
+SimCity 2000/Cities/Lakeland: type=CITY creator=SCDH data=75857 rsrc=0
+SimCity 2000/Cities/Maxis Land: type=CITY creator=SCDH data=53821 rsrc=0
+SimCity 2000/Cities/Oakland: type=SCEN creator=SCDH data=106965 rsrc=7680
+  types: PICTx1 SCENx1 TEXTx2 TMPLx1
+  68k CODE: no; PPC cfrg: no
+SimCity 2000/Cities/Seven Spires: type=CITY creator=SCDH data=78499 rsrc=0
+SimCity 2000/Cities/Volcano City: type=CITY creator=SCDH data=67397 rsrc=0

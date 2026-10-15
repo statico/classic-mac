@@ -1,0 +1,14 @@
+Dark Castle/Castle Preferences: type=DCFL creator=DCAS data=0 rsrc=2082
+  types: DEMOx1 HISCx1 KDEFx2 versx1
+  68k CODE: no; PPC cfrg: no
+Dark Castle/Dark Castle: type=APPL creator=DCAS data=0 rsrc=1784
+  types: BNDLx1 CODEx2 DCASx1 FREFx2 ICN#x2 SIZEx2 versx2
+  CODE: 0:24 1:542
+  68k CODE: yes; PPC cfrg: no
+Dark Castle/Data A: type=DCFL creator=DCAS data=0 rsrc=347923
+  types: CODEx8 DCASx1 DITLx17 DLOGx17 FONDx2 FONTx4 GPTHx4 ICONx11 IMAGx6 Mtypx2 OUVNx1 PICTx19 PPCTx62 PSCRx3 SFTRx3 SIZEx1 SOUNx15 Stblx4 WINDx1 versx1
+  CODE: 0:1320 1:9700 2:13768 3:2814 4:23874 5:26654 6:3638 7:5514
+  68k CODE: yes; PPC cfrg: no
+Dark Castle/Data B: type=DCFL creator=DCAS data=0 rsrc=394301
+  types: DCASx1 OUVNx1 PICTx4 PPCTx110 PSCRx17 SFTRx14 SOUNx58 versx1
+  68k CODE: no; PPC cfrg: no
