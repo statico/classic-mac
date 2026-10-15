@@ -1,0 +1,41 @@
+From 5c7e4355ec44cb3fe9ecd4ed0d08f2b37512b223 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Wed, 14 Oct 2026 22:18:54 -0700
+Subject: [PATCH] wasm: skip the "32 bit clean" warning dialog
+
+---
+ PowerCore             | 2 +-
+ src/wind/windInit.cpp | 2 +-
+ syn68k                | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/PowerCore b/PowerCore
+index 143361c2..30c458f9 160000
+--- a/PowerCore
++++ b/PowerCore
+@@ -1 +1 @@
+-Subproject commit 143361c27275aae884c5bef3813e5c864ee03769
++Subproject commit 30c458f97c4914faf9c547486af77dd292bd292f
+diff --git a/src/wind/windInit.cpp b/src/wind/windInit.cpp
+index be15d5c3..71c1d754 100644
+--- a/src/wind/windInit.cpp
++++ b/src/wind/windInit.cpp
+@@ -195,7 +195,7 @@ Executor may die without warning because of this mismatch",
+     /* only issue warnings once */
+     size_info.application_p = false;
+ 
+-#ifndef TWENTYFOUR_BIT_ADDRESSING
++#if !defined(TWENTYFOUR_BIT_ADDRESSING) && !defined(__EMSCRIPTEN__) // wasm: no "32 bit clean" nag
+     if((!size_info.size_resource_present_p
+         || (size_info.size_flags & SZis32BitCompatible) != SZis32BitCompatible)
+        && !ROMlib_nowarn32)
+diff --git a/syn68k b/syn68k
+index 1dd14ff2..a26d352e 160000
+--- a/syn68k
++++ b/syn68k
+@@ -1 +1 @@
+-Subproject commit 1dd14ff23f73995441c5e1037def14158bfb0487
++Subproject commit a26d352e75053addf57868a826b4e681ef9305c3
+-- 
+2.54.0
+
