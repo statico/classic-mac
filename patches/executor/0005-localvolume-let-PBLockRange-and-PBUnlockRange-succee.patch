@@ -1,0 +1,34 @@
+From f532fdcdfb1290b212c158ebd2babff1a3b86ed8 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 18:04:43 -0700
+Subject: [PATCH] localvolume: let PBLockRange and PBUnlockRange succeed
+
+The HFS code path already returns noErr. Oregon Trail locks a range of
+its config file and retries forever when the call fails.
+---
+ src/file/localvolume/localvolume.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/file/localvolume/localvolume.cpp b/src/file/localvolume/localvolume.cpp
+index bfe08a08..0ae1fff5 100644
+--- a/src/file/localvolume/localvolume.cpp
++++ b/src/file/localvolume/localvolume.cpp
+@@ -818,13 +818,13 @@ void LocalVolume::PBAllocContig(ParmBlkPtr pb)
+     // no-op, like PBALlocate above
+     pb->ioParam.ioActCount = (pb->ioParam.ioReqCount + 511) & ~511;
+ }
++// Range locks only matter on shared volumes; succeed like hfsPBLockRange does.
++// MECC games (Oregon Trail) retry forever when this fails.
+ void LocalVolume::PBLockRange(ParmBlkPtr pb)
+ {
+-    throw OSErrorException(paramErr);
+ }
+ void LocalVolume::PBUnlockRange(ParmBlkPtr pb)
+ {
+-    throw OSErrorException(paramErr);
+ }
+ void LocalVolume::PBSetFLock(ParmBlkPtr pb)
+ {
+-- 
+2.56.0
+
