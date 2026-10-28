@@ -1,0 +1,389 @@
+From dfc49038b0339f20695fb820034631a5bd2836be Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 19:30:17 -0700
+Subject: [PATCH] EV Nova: Display Manager modes, screen gamma/resolution
+ status, process app spec, ParseSndHeader, QuickTime gestalt
+
+---
+ src/device.cpp             |   6 +-
+ src/gestalt.cpp            |   7 ++
+ src/process.cpp            |  21 ++++
+ src/quickdraw/displays.cpp | 227 +++++++++++++++++++++++++++++++++++++
+ src/sound/soundIMVI.cpp    |  33 ++++++
+ 5 files changed, 293 insertions(+), 1 deletion(-)
+
+diff --git a/src/device.cpp b/src/device.cpp
+index 3d8e6b46..d0c842da 100644
+--- a/src/device.cpp
++++ b/src/device.cpp
+@@ -22,6 +22,8 @@
+ 
+ using namespace Executor;
+ 
++namespace Executor { OSErr ROMlib_screen_driver(ParmBlkPtr p, bool control); }
++
+ /*
+  * NOTE:  The device manager now executes "native code" and code read
+  *	  in from resources.  The latter is "RAM" based, the former is
+@@ -43,7 +45,9 @@ OSErr Executor::ROMlib_dispatch(ParmBlkPtr p, Boolean async,
+     DriverUPP procp;
+ 
+     devicen = -p->cntrlParam.ioCRefNum - 1;
+-    if(devicen < 0 || devicen >= NDEVICES)
++    if(p->cntrlParam.ioCRefNum == 0 && (routine == Stat || routine == Ctl))
++        retval = ROMlib_screen_driver(p, routine == Ctl); /* the screen's gdRefNum */
++    else if(devicen < 0 || devicen >= NDEVICES)
+         retval = badUnitErr;
+     else if(LM(UTableBase) == guest_cast<DCtlHandlePtr>(-1) || (h = LM(UTableBase)[devicen]) == nullptr || *h == nullptr)
+         retval = unitEmptyErr;
+diff --git a/src/gestalt.cpp b/src/gestalt.cpp
+index 30df0128..e9541da3 100644
+--- a/src/gestalt.cpp
++++ b/src/gestalt.cpp
+@@ -174,6 +174,9 @@ static gestaltentry_t gtable[] = {
+     {
+         gestaltTimeMgrVersion, gestaltStandardTimeMgr,
+     },
++    { "dply"_4, 1 },          /* Display Manager present (see displays.cpp) */
++    { "dplv"_4, 0x00020000 }, /* Display Manager 2.0 */
++    { "qtim"_4, 0x03008000 }, /* QuickTime 3.0: Movie Toolbox stubs only (EV Nova); 8.x+ only */
+     {
+         gestaltVersion, 1,
+     },
+@@ -353,6 +356,10 @@ gestalt_helper(OSType selector, GUEST<LONGINT> *responsep, Boolean searchlist,
+     if(selector == gestaltSoundAttr && ROMlib_PretendSound == soundoff)
+         selector = 0;
+ 
++    /* Mac OS 8 shipped with QuickTime; older apps may try to play movies. */
++    if(selector == "qtim"_4 && system_version < 0x800)
++        selector = 0;
++
+     *responsep = 0; /* better safe than sorry */
+ 
+     if(searchlist && (gp = find_selector_on_list(selector)))
+diff --git a/src/process.cpp b/src/process.cpp
+index 93c7fc43..5f59f36d 100644
+--- a/src/process.cpp
++++ b/src/process.cpp
+@@ -7,6 +7,8 @@
+ #include <ProcessMgr.h>
+ #include <ResourceMgr.h>
+ #include <MemoryMgr.h>
++#include <FileMgr.h>
++#include <SegmentLdr.h>
+ #include <ToolboxEvent.h>
+ 
+ #include <mman/mman.h>
+@@ -195,6 +197,25 @@ OSErr Executor::C_GetProcessInformation(ProcessSerialNumber *serial_number,
+ 
+     PROCESS_INFO_LAUNCHER(process_info) = no_process;
+ 
++    /* Only the current application has a file we know about. */
++    if(info == current_process_info)
++    {
++        if(process_info->processName)
++            str255assign(process_info->processName, LM(CurApName));
++        if(process_info->processAppSpec)
++        {
++            FSSpecPtr spec = process_info->processAppSpec;
++            FCBPBRec pb = {};
++            pb.ioNamePtr = spec->name;
++            pb.ioRefNum = LM(CurApRefNum);
++            if(PBGetFCBInfo(&pb, false) == noErr)
++            {
++                spec->vRefNum = pb.ioFCBVRefNum;
++                spec->parID = pb.ioFCBParID;
++            }
++        }
++    }
++
+     PROCESS_INFO_LAUNCH_DATE(process_info) = info->launch_ticks;
+     current_ticks = TickCount();
+     PROCESS_INFO_ACTIVE_TIME(process_info)
+diff --git a/src/quickdraw/displays.cpp b/src/quickdraw/displays.cpp
+index 6000fabb..f86024b4 100644
+--- a/src/quickdraw/displays.cpp
++++ b/src/quickdraw/displays.cpp
+@@ -1,8 +1,235 @@
+ #include <Displays.h>
++#include <MemoryMgr.h>
++#include <CQuickDraw.h>
++#include <quickdraw/cquick.h>
+ #include <error/error.h>
++#include <base/functions.impl.h>
++#include <string.h>
++
++using namespace Executor;
++
++namespace Executor { OSErr ROMlib_screen_driver(ParmBlkPtr p, bool control); }
+ 
+ Executor::OSErr Executor::C_DMRegisterNotifyProc(DMNotificationUPP proc, ProcessSerialNumber *psn)
+ {
+     warning_unimplemented("ignoring DMRegisterNotifyProc - no notifications will happen.");
+     return noErr;
+ }
++
++/*
++ * A minimal Display Manager 2.0: one display with one mode (the current
++ * screen size), offered at depths 1-32.  Enough for games that look the
++ * mode up before playing (EV Nova).
++ */
++
++enum
++{
++    kDisplayID = 1,
++    kModeID = 0x80, /* functional sResource of the only mode */
++    kDepthMode1 = 0x80,
++    kDepthCount = 6, /* 1, 2, 4, 8, 16, 32 bpp */
++};
++
++static void put16(Ptr p, uint16_t v) { p[0] = v >> 8; p[1] = v; }
++static void put32(Ptr p, uint32_t v) { put16(p, v >> 16); put16(p + 2, v); }
++
++static GDHandle orMain(GDHandle gd) { return gd ? gd : (GDHandle)LM(MainDevice); }
++
++static int depthModeToBpp(uint32_t d)
++{
++    if(d >= kDepthMode1 && d < kDepthMode1 + kDepthCount)
++        return 1 << (d - kDepthMode1);
++    return (d && d <= 32 && !(d & (d - 1))) ? d : 0; /* some apps pass bpp */
++}
++
++static void putSwitchInfo(Ptr p, int depthIndex, Ptr baseAddr)
++{
++    put16(p, kDepthMode1 + depthIndex);  /* csMode */
++    put32(p + 2, kModeID);               /* csData */
++    put16(p + 6, 0);                     /* csPage */
++    put32(p + 8, ptr_to_longint(baseAddr)); /* csBaseAddr */
++    put32(p + 12, 0);
++}
++
++OSErr Executor::C_DMGetDisplayIDByGDevice(GDHandle displayDevice, GUEST<UInt32> *displayID, Boolean failToMain)
++{
++    *displayID = kDisplayID;
++    return noErr;
++}
++
++OSErr Executor::C_DMBeginConfigureDisplays(GUEST<Handle> *displayState)
++{
++    *displayState = nullptr;
++    return noErr;
++}
++
++OSErr Executor::C_DMEndConfigureDisplays(Handle displayState)
++{
++    return noErr;
++}
++
++OSErr Executor::C_DMGetDisplayMode(GDHandle theDevice, Ptr switchInfo)
++{
++    PixMapHandle pm = GD_PMAP(orMain(theDevice));
++    int bpp = PIXMAP_PIXEL_SIZE(pm), i = 0;
++    while((1 << i) < bpp)
++        i++;
++    putSwitchInfo(switchInfo, i, PIXMAP_BASEADDR(pm));
++    return noErr;
++}
++
++OSErr Executor::C_DMSetDisplayMode(GDHandle theDevice, UInt32 mode, GUEST<UInt32> *depthMode,
++                                   UInt32 reserved, Handle displayState)
++{
++    if(mode != kModeID && mode != 0)
++        return paramErr;
++    int bpp = depthMode ? depthModeToBpp(*depthMode) : 0;
++    if(!bpp)
++        return noErr;
++    return SetDepth(orMain(theDevice), bpp, 0, 0);
++}
++
++/*
++ * The list is one block holding everything the iterator's
++ * DMDisplayModeListEntryRec points at.  Offsets (68k packing):
++ */
++enum
++{
++    oEntry = 0,         /* DMDisplayModeListEntryRec, 32 */
++    oSwitch = 32,       /* VDSwitchInfoRec, 16 */
++    oRes = 48,          /* VDResolutionInfoRec, 30 */
++    oTiming = 78,       /* VDTimingInfoRec, 20 */
++    oDepthBlock = 98,   /* DMDepthInfoBlockRec, 20 */
++    oDepths = 118,      /* DMDepthInfoRec[6], 20 each */
++    oDepthSwitch = 238, /* VDSwitchInfoRec[6], 16 each */
++    oVP = 334,          /* VPBlock[6], 42 each */
++    oName = 586,        /* Str31 */
++    kListSize = 618,
++};
++
++OSErr Executor::C_DMNewDisplayModeList(UInt32 displayID, UInt32 modeListFlags, UInt32 reserved,
++                                       GUEST<UInt32> *thePanelCount, GUEST<Ptr> *thePanelList)
++{
++    PixMapHandle pm = GD_PMAP(LM(MainDevice));
++    Rect r = PIXMAP_BOUNDS(pm);
++    int w = r.right - r.left, h = r.bottom - r.top;
++    Ptr base = PIXMAP_BASEADDR(pm);
++
++    Ptr p = NewPtr(kListSize);
++    if(!p)
++        return memFullErr;
++    memset(p, 0, kListSize);
++
++    put32(p + oEntry + 4, ptr_to_longint(p + oSwitch));
++    put32(p + oEntry + 8, ptr_to_longint(p + oRes));
++    put32(p + oEntry + 12, ptr_to_longint(p + oTiming));
++    put32(p + oEntry + 16, ptr_to_longint(p + oDepthBlock));
++    put32(p + oEntry + 24, ptr_to_longint(p + oName));
++
++    putSwitchInfo(p + oSwitch, kDepthCount - 1, base);
++
++    put32(p + oRes + 4, kModeID);              /* csDisplayModeID */
++    put32(p + oRes + 8, w);                    /* csHorizontalPixels */
++    put32(p + oRes + 12, h);                   /* csVerticalLines */
++    put32(p + oRes + 16, 67 << 16);            /* csRefreshRate */
++    put16(p + oRes + 20, kDepthMode1 + kDepthCount - 1); /* csMaxDepthMode */
++
++    put32(p + oTiming + 0, kModeID);           /* csTimingMode */
++    put32(p + oTiming + 16, 3);                /* csTimingFlags: valid | safe */
++
++    put32(p + oDepthBlock, kDepthCount);
++    put32(p + oDepthBlock + 4, ptr_to_longint(p + oDepths));
++
++    for(int i = 0; i < kDepthCount; i++)
++    {
++        int bpp = 1 << i;
++        Ptr d = p + oDepths + 20 * i, s = p + oDepthSwitch + 16 * i, vp = p + oVP + 42 * i;
++        put32(d, ptr_to_longint(s));
++        put32(d + 4, ptr_to_longint(vp));
++        putSwitchInfo(s, i, base);
++        put16(vp + 4, ((w * bpp + 31) / 32) * 4); /* vpRowBytes */
++        put16(vp + 10, h);                     /* vpBounds.bottom */
++        put16(vp + 12, w);                     /* vpBounds.right */
++        put32(vp + 22, 72 << 16);              /* vpHRes */
++        put32(vp + 26, 72 << 16);              /* vpVRes */
++        put16(vp + 30, bpp >= 16 ? 16 : 0);    /* vpPixelType: RGBDirect or indexed */
++        put16(vp + 32, bpp);                   /* vpPixelSize */
++        put16(vp + 34, bpp >= 16 ? 3 : 1);     /* vpCmpCount */
++        put16(vp + 36, bpp == 16 ? 5 : bpp == 32 ? 8 : bpp); /* vpCmpSize */
++    }
++
++    char name[32];
++    int n = snprintf(name + 1, sizeof name - 1, "%dx%d", w, h);
++    name[0] = n;
++    memcpy(p + oName, name, n + 1);
++
++    *thePanelCount = 1;
++    *thePanelList = p;
++    return noErr;
++}
++
++OSErr Executor::C_DMGetIndexedDisplayModeFromList(Ptr panelList, UInt32 itemIndex, UInt32 reserved,
++                                                  DMDisplayModeListIteratorUPP listIterator, void *userData)
++{
++    if(itemIndex != 0)
++        return paramErr;
++    listIterator(userData, itemIndex, panelList + oEntry);
++    return noErr;
++}
++
++OSErr Executor::C_DMDisposeList(Ptr panelList)
++{
++    DisposePtr(panelList);
++    return noErr;
++}
++
++/*
++ * Our screen has no video driver (gdRefNum 0).  Answer the Control and
++ * Status calls games use to look up the display mode and fade the
++ * screen; see device.cpp.
++ */
++OSErr Executor::ROMlib_screen_driver(ParmBlkPtr p, bool control)
++{
++    enum { cscSetGamma = 4, cscGetGamma = 8, cscGetNextResolution = 17 };
++    Ptr rec = *(GUEST<Ptr> *)p->cntrlParam.csParam;
++
++    if(control)
++        /* ponytail: gamma changes are accepted but not drawn, so fades are instant */
++        return p->cntrlParam.csCode == cscSetGamma ? noErr : -17; /* controlErr */
++
++    if(p->cntrlParam.csCode == cscGetGamma)
++    {
++        static Ptr table; /* a linear GammaTbl: 1 channel, 256 8-bit entries */
++        if(!table)
++        {
++            table = NewPtrSysClear(12 + 256);
++            put16(table + 6, 1);
++            put16(table + 8, 256);
++            put16(table + 10, 8);
++            for(int i = 0; i < 256; i++)
++                table[12 + i] = i;
++        }
++        put32(rec, ptr_to_longint(table));
++        return noErr;
++    }
++
++    if(p->cntrlParam.csCode != cscGetNextResolution)
++        return -18; /* statusErr */
++
++    int32_t prev = (rec[0] << 24) | ((uint8_t)rec[1] << 16) | ((uint8_t)rec[2] << 8) | (uint8_t)rec[3];
++    PixMapHandle pm = GD_PMAP(LM(MainDevice));
++    Rect r = PIXMAP_BOUNDS(pm);
++
++    memset(rec + 4, 0, 26);
++    if(prev != 0 && prev != -1) /* only "current" and "first" have a next mode */
++    {
++        put32(rec + 4, 0xFFFFFFFE); /* kDisplayModeIDNoMoreResolutions */
++        return noErr;
++    }
++    put32(rec + 4, kModeID);
++    put32(rec + 8, r.right - r.left);
++    put32(rec + 12, r.bottom - r.top);
++    put32(rec + 16, 67 << 16);
++    put16(rec + 20, kDepthMode1 + kDepthCount - 1);
++    return noErr;
++}
+diff --git a/src/sound/soundIMVI.cpp b/src/sound/soundIMVI.cpp
+index 4a3f475a..6df0867c 100644
+--- a/src/sound/soundIMVI.cpp
++++ b/src/sound/soundIMVI.cpp
+@@ -524,6 +524,39 @@ OSErr Executor::C_GetSoundHeaderOffset(Handle sndHandle, GUEST<LONGINT> *offset)
+     return retval;
+ }
+ 
++/* Fills a 28-byte SoundComponentData from the first sound header. */
++OSErr Executor::C_ParseSndHeader(Handle sndHandle, Ptr sndInfo,
++                                 GUEST<ULONGINT> *numFrames, GUEST<ULONGINT> *dataOffset)
++{
++    GUEST<LONGINT> off;
++    OSErr err = C_GetSoundHeaderOffset(sndHandle, &off);
++    if(err != noErr)
++        return err;
++
++    auto get32 = [](const uint8_t *p) { return uint32_t(p[0] << 24 | p[1] << 16 | p[2] << 8 | p[3]); };
++    auto put32 = [](Ptr p, uint32_t v) { p[0] = v >> 24; p[1] = v >> 16; p[2] = v >> 8; p[3] = v; };
++    const uint8_t *h = (const uint8_t *)*sndHandle + off;
++    uint32_t channels = 1, frames = get32(h + 4), bits = 8, format = "raw "_4, data = 22;
++
++    if(h[20] == extSH || h[20] == cmpSH)
++    {
++        channels = get32(h + 4);
++        frames = get32(h + 22);
++        bits = h[48] << 8 | h[49];
++        format = h[20] == cmpSH ? get32(h + 40) : bits == 16 ? "twos"_4 : "raw "_4;
++        data = 64;
++    }
++    memset(sndInfo, 0, 28);
++    put32(sndInfo + 4, format);
++    sndInfo[8] = channels >> 8; sndInfo[9] = channels;
++    sndInfo[10] = bits >> 8; sndInfo[11] = bits;
++    memcpy(sndInfo + 12, h + 8, 4); /* sampleRate */
++    put32(sndInfo + 16, frames);
++    *numFrames = frames;
++    *dataOffset = off + data;
++    return noErr;
++}
++
+ UnsignedFixed Executor::C_UnsignedFixedMulDiv(
+     UnsignedFixed value, UnsignedFixed multiplier, UnsignedFixed divisor)
+ {
+-- 
+2.56.0
+

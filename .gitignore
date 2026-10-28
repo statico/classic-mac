@@ -4,3 +4,6 @@ build*/
 node_modules/
 .DS_Store
 web/dbg/
+# EV Nova is 170 MB: too big for git. Rebuild it (see games/README.md).
+games/prepared/ev-nova/
+web/executor/games/ev-nova.*

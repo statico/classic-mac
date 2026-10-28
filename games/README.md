@@ -60,3 +60,19 @@ Verification: we read each `.hfv` back with python `machfs` and unpacked each `.
 - Files: `Glider PRO/Glider PRO™` (APPL/ozm5, data 384,604 + rsrc 3,448,010) and three houses in `Houses/`: Slumberland, Demo House and Castle o' the Air, each with its `.mov` file.
 - Resources: fat app. The data fork is a PEF (`Joy!peff`) with a `cfrg`, and the resource fork has 68k CODE 0–14. Executor runs the 68k code unless you pass `--ppc`.
 - We did not use the 1.0.x floppies (`glider_pro_v100_v101_v102.sit`), because they hold only a StuffIt installer.
+
+## EV Nova 1.0.2
+
+- Source: https://old.mac.gdn/games/EV_Nova_1.0.2.sit (MD5 `fd15b3ff14bd14173681094ae3c2850b`).
+- Author: Ambrosia Software (2002). Shareware.
+- Files: `EV Nova/EV Nova` (the app), `Nova Files/`, `Nova Plug-ins/` and `Pilots/`. `fetch-games.sh` removes the documents and the four `Race *.mov` movies.
+- Resources: fat app with 12 68k CODE resources and a Carbon PEF (`carb`). Executor runs the 68k code.
+- The game data is 170 MB. This is more than the 100 MB file limit of GitHub, so git does not keep `games/prepared/ev-nova/` or `web/executor/games/ev-nova.*`. To make them again, do these steps:
+
+```sh
+scripts/fetch-games.sh
+python3 -I scripts/prepare-games.py games/raw/ev-nova/trimmed games/prepared/ev-nova "EV Nova"
+scripts/package-executor-game.sh ev-nova
+```
+
+- The game must have Mac OS 8.1 or later. The page starts Executor with `--system 8.1`. With this setting, Gestalt also reports QuickTime 3.0. Executor has only stubs for the Movie Toolbox.

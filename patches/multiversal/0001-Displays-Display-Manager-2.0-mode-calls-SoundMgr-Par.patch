@@ -1,0 +1,189 @@
+From 201a561d99d77c7279e162f15cd57282e516f23f Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 19:30:17 -0700
+Subject: [PATCH] Displays: Display Manager 2.0 mode calls; SoundMgr:
+ ParseSndHeader
+
+---
+ defs/Displays.yaml | 138 +++++++++++++++++++++++++++++++++++++++++++++
+ defs/SoundMgr.yaml |  18 ++++++
+ 2 files changed, 156 insertions(+)
+
+diff --git a/defs/Displays.yaml b/defs/Displays.yaml
+index 855a122..4d55857 100644
+--- a/defs/Displays.yaml
++++ b/defs/Displays.yaml
+@@ -24,3 +24,141 @@
+     dispatcher: DisplayDispatch
+     selector: 0x0414
+     executor: C_
++
++# ####
++
++- funptr:
++    args:
++      - name: userData
++        type: void*
++      - name: itemIndex
++        type: UInt32
++      - name: displaymodeInfo
++        type: Ptr
++    name: DMDisplayModeListIteratorUPP
++
++# ####
++
++- function:
++    name: DMBeginConfigureDisplays
++    return: OSErr
++    args:
++      - name: displayState
++        type: Handle*
++    dispatcher: DisplayDispatch
++    selector: 0x0206
++    executor: C_
++
++# ####
++
++- function:
++    name: DMEndConfigureDisplays
++    return: OSErr
++    args:
++      - name: displayState
++        type: Handle
++    dispatcher: DisplayDispatch
++    selector: 0x0207
++    executor: C_
++
++# ####
++
++- function:
++    name: DMSetDisplayMode
++    return: OSErr
++    args:
++      - name: theDevice
++        type: GDHandle
++      - name: mode
++        type: UInt32
++      - name: depthMode
++        type: UInt32*
++      - name: reserved
++        type: UInt32
++      - name: displayState
++        type: Handle
++    dispatcher: DisplayDispatch
++    selector: 0x0A11
++    executor: C_
++
++# ####
++
++- function:
++    name: DMGetDisplayIDByGDevice
++    return: OSErr
++    args:
++      - name: displayDevice
++        type: GDHandle
++      - name: displayID
++        type: UInt32*
++      - name: failToMain
++        type: Boolean
++    dispatcher: DisplayDispatch
++    selector: 0x051F
++    executor: C_
++
++# ####
++
++- function:
++    name: DMDisposeList
++    return: OSErr
++    args:
++      - name: panelList
++        type: Ptr
++    dispatcher: DisplayDispatch
++    selector: 0x022C
++    executor: C_
++
++# ####
++
++- function:
++    name: DMNewDisplayModeList
++    return: OSErr
++    args:
++      - name: displayID
++        type: UInt32
++      - name: modeListFlags
++        type: UInt32
++      - name: reserved
++        type: UInt32
++      - name: thePanelCount
++        type: UInt32*
++      - name: thePanelList
++        type: Ptr*
++    dispatcher: DisplayDispatch
++    selector: 0x0A36
++    executor: C_
++
++# ####
++
++- function:
++    name: DMGetIndexedDisplayModeFromList
++    return: OSErr
++    args:
++      - name: panelList
++        type: Ptr
++      - name: itemIndex
++        type: UInt32
++      - name: reserved
++        type: UInt32
++      - name: listIterator
++        type: DMDisplayModeListIteratorUPP
++      - name: userData
++        type: void*
++    dispatcher: DisplayDispatch
++    selector: 0x0A37
++    executor: C_
++
++# ####
++
++- function:
++    name: DMGetDisplayMode
++    return: OSErr
++    args:
++      - name: theDevice
++        type: GDHandle
++      - name: switchInfo
++        type: Ptr
++    dispatcher: DisplayDispatch
++    selector: 0x043E
++    executor: C_
+diff --git a/defs/SoundMgr.yaml b/defs/SoundMgr.yaml
+index 31c0904..1cc084e 100644
+--- a/defs/SoundMgr.yaml
++++ b/defs/SoundMgr.yaml
+@@ -1039,6 +1039,24 @@
+ 
+ # ####
+ 
++- function:
++    name: ParseSndHeader
++    return: OSErr
++    args:
++      - name: sndHandle
++        type: Handle
++      - name: sndInfo
++        type: Ptr
++      - name: numFrames
++        type: ULONGINT*
++      - name: dataOffset
++        type: ULONGINT*
++    dispatcher: SoundDispatch
++    selector: 0x085C0014
++    executor: C_
++
++# ####
++
+ - function:
+     name: UnsignedFixedMulDiv
+     return: UnsignedFixed
+-- 
+2.56.0
+

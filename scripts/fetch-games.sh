@@ -64,4 +64,16 @@ humount
 unar -q -k fork -o "$G/extracted/Glider PRO" "$G/bin/GliderPRO.bin"
 for f in "$G"/bin/Houses/*.bin; do unar -q -k fork -o "$G/extracted/Glider PRO/Houses" "$f"; done
 
+# EV Nova 1.0.2 (Ambrosia, 2002). The app is fat (68k CODE + Carbon PEF);
+# Executor runs the 68k code. Drop the docs and the four race movies.
+fetch ev-nova EV_Nova_1.0.2.sit fd15b3ff14bd14173681094ae3c2850b
+E=$RAW/ev-nova
+extract "$E/EV_Nova_1.0.2.sit" "$E/extracted"
+rm -rf "$E/trimmed"; mkdir -p "$E/trimmed/EV Nova"
+for f in "EV Nova" "Nova Files" "Nova Plug-ins" Pilots; do
+  ditto "$E/extracted/EV Nova 1.0.2/$f" "$E/trimmed/EV Nova/$f"
+done
+rm -f "$E/trimmed/EV Nova/Nova Files"/*.mov
+find "$E/trimmed" -name .DS_Store -delete
+
 echo "fetched + extracted into $RAW"

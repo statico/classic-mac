@@ -30,6 +30,7 @@ if ! [ -d "$V/executor" ]; then
   git -C "$V/executor" submodule update -q --init --recursive
   git -C "$V/executor/syn68k"    am -q "$ROOT"/patches/syn68k/*.patch
   git -C "$V/executor/PowerCore" am -q "$ROOT"/patches/PowerCore/*.patch
+  git -C "$V/executor/multiversal" am -q "$ROOT"/patches/multiversal/*.patch
   git -C "$V/executor"           am -q "$ROOT"/patches/executor/*.patch
 fi
 
