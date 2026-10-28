@@ -35,6 +35,7 @@ Some fixes that the games needed:
 - **Oregon Trail:** the game locks a range of its settings file and tries again forever if the lock fails. Local folders now accept range locks. SANE extended-precision floats also did not convert correctly on WebAssembly.
 - **Dark Castle:** the game stores flags in the high byte of pointers (24-bit addressing).
 - **EV Nova:** it needed a small Display Manager, screen gamma calls, `GetProcessInformation`, `ParseSndHeader`, clipping for GWorlds larger than the screen, and a decoder for QuickTime "Animation" pictures.
+- **Sound:** a small sound driver sends the Sound Manager mix, the old Sound Driver and the Mac Plus sound buffer at `SoundBase` to Web Audio. Browsers start sound only after a user action, so sound starts at the first click or key press in the game.
 
 ## Build it yourself
 
