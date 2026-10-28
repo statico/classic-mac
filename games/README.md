@@ -7,7 +7,7 @@ Classic Mac 68k games prepared for Executor. The files are kept for archive and 
 ```sh
 brew install unar hfsutils
 scripts/fetch-games.sh            # download (MD5-checked) + extract into games/raw/ (gitignored)
-for g in "scarab-of-ra:Scarab of Ra" "dark-castle:Dark Castle" "simcity-2000:SimCity 2000"; do
+for g in "scarab-of-ra:Scarab of Ra" "dark-castle:Dark Castle" "simcity-2000:SimCity 2000" "glider-pro:Glider PRO"; do
   python3 -I scripts/prepare-games.py "games/raw/${g%%:*}/extracted" "games/prepared/${g%%:*}" "${g#*:}"
 done
 ```
@@ -52,3 +52,11 @@ Verification: we read each `.hfv` back with python `machfs` and unpacked each `.
   - 1.2 floppy (`SimCity_2000_1.2.hqx`) is an Installer VISE package. `unar` cannot extract it.
   - The CD Collection folder (`simcity2000.sit`, 8.8 MB, MD5 `8b4ac368b906c38174110eaa4fcc6286`) contains `SimCity 2000® 1.2` (data 416,129 + rsrc 3,812,611). This is a fat build: the data fork is a PEF (`Joy!peff`) with a `cfrg`, and the resource fork has full 68k CODE 0–3 (CODE 2 is 280 KB, 297 KB of CODE in total). It also contains the SCURK app and many cities. The download is in `games/raw/simcity-2000-cd/` if a later version is wanted.
   - We avoided the Special Edition (75 MB CD).
+
+## Glider PRO 1.1.2
+
+- Source: https://macintoshgarden.org/games/glider-pro, `glider_pro_1_1_2.zip` (46.4 MB, MD5 `1023ad632df89c19cb03067fa8e2558b`). It holds a raw HFS CD image (`GliderPRO_1_1_2.toast`, no partition map).
+- Author: John Calhoun (Casady & Greene, 1994–96).
+- Files: `Glider PRO/Glider PRO™` (APPL/ozm5, data 384,604 + rsrc 3,448,010) and three houses in `Houses/`: Slumberland, Demo House and Castle o' the Air, each with its `.mov` file.
+- Resources: fat app. The data fork is a PEF (`Joy!peff`) with a `cfrg`, and the resource fork has 68k CODE 0–14. Executor runs the 68k code unless you pass `--ppc`.
+- We did not use the 1.0.x floppies (`glider_pro_v100_v101_v102.sit`), because they hold only a StuffIt installer.

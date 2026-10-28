@@ -47,4 +47,21 @@ unar -q -k fork -o "$S/extracted/SimCity 2000" "$S/sea/program.sea.bin"
 unar -q -k fork -o "$S/extracted/SimCity 2000" "$S/sea/readme.bin"
 unar -q -k fork -o "$S/extracted/SimCity 2000" "$S/sea/cities.sea.bin"
 mv "$S/extracted/SimCity 2000/cities.sea" "$S/extracted/SimCity 2000/Cities"
+# Glider PRO 1.1.2 (John Calhoun, 1996) CD image. The app is fat (68k CODE +
+# PPC data fork); Executor runs the 68k code. Copy the app and three houses
+# off the raw HFS .toast as MacBinary, then unar them into native forks.
+fetch glider-pro glider_pro_1_1_2.zip 1023ad632df89c19cb03067fa8e2558b
+G=$RAW/glider-pro
+extract "$G/glider_pro_1_1_2.zip" "$G/cd"
+rm -rf "$G/bin" "$G/extracted"; mkdir -p "$G/bin/Houses" "$G/extracted/Glider PRO/Houses"
+hmount "$G/cd/glider_pro_1_1_2/GliderPRO_1_1_2.toast" >/dev/null
+hcopy -m ':Glider PRO?' "$G/bin/GliderPRO.bin"
+for h in Slumberland "Demo House" "Castle o' the Air"; do
+  hcopy -m ":Houses:$h" "$G/bin/Houses/$h.bin"
+  hcopy -m ":Houses:$h.mov" "$G/bin/Houses/$h.mov.bin"
+done
+humount
+unar -q -k fork -o "$G/extracted/Glider PRO" "$G/bin/GliderPRO.bin"
+for f in "$G"/bin/Houses/*.bin; do unar -q -k fork -o "$G/extracted/Glider PRO/Houses" "$f"; done
+
 echo "fetched + extracted into $RAW"
