@@ -120,7 +120,7 @@
     font: 600 18px/1 Archivo, Geneva, system-ui, sans-serif; color: var(--text);
     background: linear-gradient(var(--hi), var(--plat) 70%); border: 1px solid var(--frame); border-radius: 5px;
     box-shadow: inset -1px -2px var(--lo), 0 1px 0 rgb(0 0 0 / .25);
-    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none;
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
   }
   .key.word { font-size: 13px; }
   .key svg { width: 24px; height: 14px; }
@@ -239,7 +239,8 @@ function wireKeys(root, frame) {
 
   // The phone keyboard types into a hidden text field. iOS sends real keydowns;
   // Android sends "Unidentified" keydowns, so its text comes from input events.
-  typeKey.addEventListener('click', () => document.activeElement === input ? input.blur() : input.focus());
+  // pointerup, not click: Safari sends no click after a pointerdown that called preventDefault.
+  typeKey.addEventListener('pointerup', () => document.activeElement === input ? input.blur() : input.focus());
   input.addEventListener('focus', () => typeKey.setAttribute('aria-pressed', 'true'));
   input.addEventListener('blur', () => typeKey.setAttribute('aria-pressed', 'false'));
   const reset = () => { input.value = ' '; }; // a space, so Backspace has something to delete
