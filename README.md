@@ -61,4 +61,4 @@ Bundles larger than 50 MB (EV Nova) are split into 45 MB parts, because GitHub a
 
 ## Legal
 
-These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of these games and want it removed, [open an issue](https://github.com/statico/classic-mac-games/issues) and we will remove it.
+These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of these games and want it removed, [open an issue](https://github.com/statico/classic-mac/issues) and we will remove it.
