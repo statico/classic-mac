@@ -4,108 +4,102 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Classic Mac Games</title>
-<meta name="description" content="Classic 68k Macintosh games running in the browser on Executor compiled to WebAssembly.">
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
+  /* Mac OS 8/9 Platinum: gray bevels, lavender highlight, periwinkle desktop */
   :root {
-    --paper: #fff; --ink: #000; --desk-a: #fff; --desk-b: #000; --muted: #444;
+    --desk: #6670ad; --desk-dot: #5a63a0;
+    --plat: #dddddd; --hi: #ffffff; --lo: #8a8a8a; --frame: #333;
+    --text: #1d1d1f; --muted: #555; --sel: #5a5acf; --sel-text: #fff; --soft: #ccccff;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --paper: #000; --ink: #e8e8e8; --desk-a: #2a2a2a; --desk-b: #000; --muted: #aaa; color-scheme: dark; }
+    :root:not([data-theme="light"]) {
+      --desk: #1f2440; --desk-dot: #262c4d;
+      --plat: #3b3b43; --hi: #55555f; --lo: #1c1c22; --frame: #0c0c10;
+      --text: #ececf2; --muted: #a8a8b4; --sel: #8c8cff; --sel-text: #10102a; --soft: #34345e;
+      color-scheme: dark;
+    }
   }
-  :root[data-theme="dark"] { --paper: #000; --ink: #e8e8e8; --desk-a: #2a2a2a; --desk-b: #000; --muted: #aaa; color-scheme: dark; }
-
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { min-height: 100vh; }
   body {
-    font: 16px/1.35 Chicago, ChicagoFLF, "Pixelify Sans", Geneva, system-ui, sans-serif;
-    color: var(--ink);
-    /* the 50% gray dither of the original desktop */
-    background: var(--desk-a);
-    background-image: conic-gradient(var(--desk-b) 25%, var(--desk-a) 0 50%, var(--desk-b) 0 75%, var(--desk-a) 0);
-    background-size: 4px 4px;
-    image-rendering: pixelated;
+    min-height: 100vh; color: var(--text);
+    font: 15px/1.5 Archivo, Geneva, system-ui, sans-serif;
+    background: var(--desk) radial-gradient(var(--desk-dot) 1px, transparent 1.5px) 0 0 / 6px 6px;
   }
-  a { color: inherit; }
+  a { color: var(--sel); }
+  :focus-visible { outline: 2px solid var(--sel); outline-offset: 2px; }
 
-  /* menu bar */
   .menubar {
-    position: sticky; top: 0; z-index: 2;
-    display: flex; align-items: stretch; gap: 0;
-    background: var(--paper); border-bottom: 1px solid var(--ink);
-    height: 28px; padding: 0 8px;
-    overflow-x: auto; scrollbar-width: none; white-space: nowrap;
+    position: sticky; top: 0; z-index: 2; display: flex; height: 26px; padding: 0 6px;
+    background: linear-gradient(var(--hi), var(--plat)); border-bottom: 1px solid var(--frame);
+    overflow-x: auto; scrollbar-width: none; white-space: nowrap; font-weight: 600; font-size: 14px;
   }
   .menubar::-webkit-scrollbar { display: none; }
-  .menubar a, .menubar button {
-    display: flex; align-items: center; padding: 0 10px;
-    font: inherit; color: inherit; text-decoration: none;
-    background: none; border: 0; cursor: pointer;
-  }
-  .menubar a:hover, .menubar a:focus-visible, .menubar a[aria-current], .menubar button:hover {
-    background: var(--ink); color: var(--paper); outline: none;
-  }
+  .menubar a { display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--text); text-decoration: none; }
+  .menubar a:hover, .menubar a[aria-current] { background: var(--sel); color: var(--sel-text); }
+  .menubar a:focus-visible { outline-offset: -2px; }
   .menubar .spacer { flex: 1; }
-  .menubar svg { width: 18px; height: 18px; }
+  .swatch { width: 9px; height: 9px; border: 1px solid var(--frame); background: var(--c); }
+  .logo { width: 16px; height: 16px; }
 
-  /* windows */
-  main { padding: 24px 16px 48px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  main { padding: 28px 16px 48px; display: grid; gap: 24px; justify-items: center; }
   .window {
-    width: 100%; max-width: 820px;
-    background: var(--paper); border: 1px solid var(--ink);
-    box-shadow: 2px 2px 0 var(--ink);
+    width: 100%; max-width: 860px; background: var(--plat);
+    border: 1px solid var(--frame); box-shadow: inset 1px 1px var(--hi), inset -1px -1px var(--lo), 2px 3px 0 rgb(0 0 0 / .28);
+    padding: 0 5px 5px;
   }
-  .titlebar {
-    position: relative; height: 22px; border-bottom: 1px solid var(--ink);
-    display: flex; align-items: center; justify-content: center;
-    background: repeating-linear-gradient(var(--paper) 0 3px, var(--ink) 3px 4px) 0 2px / 100% calc(100% - 4px) no-repeat, var(--paper);
+  .titlebar { display: flex; align-items: center; gap: 8px; height: 24px; }
+  .titlebar::before, .titlebar::after {
+    content: ''; flex: 1; height: 11px;
+    background: repeating-linear-gradient(var(--hi) 0 1px, var(--lo) 1px 2px, transparent 2px 3px);
   }
-  .titlebar h1, .titlebar h2 {
-    margin: 0; padding: 0 8px; font-size: 16px; font-weight: 600;
-    background: var(--paper); line-height: 22px;
-    max-width: calc(100% - 64px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .titlebar h1, .titlebar h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
   .closebox {
-    position: absolute; left: 8px; top: 5px; width: 13px; height: 12px;
-    border: 1px solid var(--ink); background: var(--paper); display: block;
-    box-shadow: 0 0 0 2px var(--paper);
+    order: -1; width: 13px; height: 13px; flex: none;
+    background: linear-gradient(135deg, var(--lo), var(--hi)); border: 1px solid var(--frame);
   }
-  .content { padding: 16px; }
-  .content p { margin: 0 0 12px; }
+  .pane { background: var(--plat); border: 1px solid var(--lo); border-right-color: var(--hi); border-bottom-color: var(--hi); }
+  .content { padding: 18px 20px; }
+  .content p { margin: 0 0 12px; max-width: 68ch; }
   .content p:last-child { margin-bottom: 0; }
+  .lede { font-size: 17px; }
   .muted { color: var(--muted); }
 
-  /* game list */
-  .icons { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px 8px; }
-  .icons a { display: flex; flex-direction: column; align-items: center; text-align: center; text-decoration: none; padding: 6px 4px; gap: 4px; }
-  .icons svg { width: 48px; height: 48px; }
-  .icons .name { padding: 0 4px; font-weight: 600; }
-  .icons a:hover .name, .icons a:focus-visible .name { background: var(--ink); color: var(--paper); }
+  .icons { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 18px 8px; }
+  .icons a { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 8px 4px; color: var(--text); text-decoration: none; }
+  .icons svg { width: 64px; height: 64px; image-rendering: pixelated; filter: drop-shadow(1px 2px 0 rgb(0 0 0 / .25)); }
+  .icons .name { padding: 1px 5px; font-weight: 600; }
+  .icons a:hover .name, .icons a:focus-visible .name { background: var(--sel); color: var(--sel-text); }
   .icons a:focus-visible { outline: none; }
-  .icons a:hover svg, .icons a:focus-visible svg { filter: invert(1); }
   .icons .meta { font-size: 13px; color: var(--muted); }
 
-  /* player */
+  .player { display: grid; gap: 24px; width: 100%; justify-items: center; }
   .screen { display: block; width: 100%; border: 0; background: #000; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 12px; }
-  dt { font-weight: 600; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0 0 14px; }
+  dt { font-weight: 600; color: var(--muted); }
   dd { margin: 0; overflow-wrap: anywhere; }
-  .note { border: 1px dotted var(--ink); padding: 8px 12px; font-size: 14px; }
+  .note { background: var(--soft); padding: 10px 12px; font-size: 13px; border: 1px solid var(--lo); }
+  .button {
+    display: inline-block; padding: 4px 14px; border: 1px solid var(--frame); border-radius: 4px; color: var(--text); text-decoration: none; font-weight: 600;
+    background: linear-gradient(var(--hi), var(--plat)); box-shadow: inset -1px -1px var(--lo);
+  }
   @media (max-width: 520px) {
     main { padding: 16px 16px 32px; }
+    .content { padding: 14px; }
     dl { grid-template-columns: 1fr; gap: 0; }
     dd { margin-bottom: 8px; }
   }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="floppy" viewBox="0 0 32 32"><path fill="#000" d="M2 2h27v1h-27zM2 3h1v1h-1zM9 3h1v1h-1zM22 3h1v1h-1zM29 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM17 4h3v1h-3zM22 4h1v1h-1zM30 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM17 5h3v1h-3zM22 5h1v1h-1zM31 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM17 6h3v1h-3zM22 6h1v1h-1zM31 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM17 7h3v1h-3zM22 7h1v1h-1zM31 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM17 8h3v1h-3zM22 8h1v1h-1zM31 8h1v1h-1zM2 9h1v1h-1zM9 9h1v1h-1zM17 9h3v1h-3zM22 9h1v1h-1zM31 9h1v1h-1zM2 10h1v1h-1zM9 10h1v1h-1zM22 10h1v1h-1zM31 10h1v1h-1zM2 11h1v1h-1zM9 11h14v1h-14zM31 11h1v1h-1zM2 12h1v1h-1zM31 12h1v1h-1zM2 13h1v1h-1zM31 13h1v1h-1zM2 14h1v1h-1zM31 14h1v1h-1zM2 15h1v1h-1zM7 15h20v1h-20zM31 15h1v1h-1zM2 16h1v1h-1zM6 16h1v1h-1zM27 16h1v1h-1zM31 16h1v1h-1zM2 17h1v1h-1zM6 17h1v1h-1zM27 17h1v1h-1zM31 17h1v1h-1zM2 18h1v1h-1zM6 18h1v1h-1zM27 18h1v1h-1zM31 18h1v1h-1zM2 19h1v1h-1zM6 19h1v1h-1zM27 19h1v1h-1zM31 19h1v1h-1zM2 20h1v1h-1zM6 20h1v1h-1zM27 20h1v1h-1zM31 20h1v1h-1zM2 21h1v1h-1zM6 21h1v1h-1zM27 21h1v1h-1zM31 21h1v1h-1zM2 22h1v1h-1zM6 22h1v1h-1zM27 22h1v1h-1zM31 22h1v1h-1zM2 23h1v1h-1zM6 23h1v1h-1zM27 23h1v1h-1zM31 23h1v1h-1zM2 24h1v1h-1zM6 24h1v1h-1zM27 24h1v1h-1zM31 24h1v1h-1zM2 25h1v1h-1zM6 25h1v1h-1zM27 25h1v1h-1zM31 25h1v1h-1zM2 26h1v1h-1zM4 26h3v1h-3zM27 26h1v1h-1zM31 26h1v1h-1zM2 27h1v1h-1zM4 27h3v1h-3zM27 27h1v1h-1zM31 27h1v1h-1zM2 28h1v1h-1zM6 28h1v1h-1zM27 28h1v1h-1zM31 28h1v1h-1zM2 29h30v1h-30z"/><path fill="#8a8a8a" d="M3 3h6v1h-6zM23 3h5v1h-5zM3 4h1v1h-1zM3 5h1v1h-1zM3 6h1v1h-1zM3 7h1v1h-1zM3 8h1v1h-1zM3 9h1v1h-1zM3 10h1v1h-1zM3 11h1v1h-1zM3 12h1v1h-1zM3 13h1v1h-1zM3 14h1v1h-1zM3 15h1v1h-1zM3 16h1v1h-1zM3 17h1v1h-1zM3 18h1v1h-1zM3 19h1v1h-1zM3 20h1v1h-1zM3 21h1v1h-1zM3 22h1v1h-1zM3 23h1v1h-1zM3 24h1v1h-1zM3 25h1v1h-1zM3 26h1v1h-1zM3 27h1v1h-1zM3 28h1v1h-1z"/><path fill="#555" d="M28 3h1v1h-1zM4 4h5v1h-5zM23 4h7v1h-7zM4 5h5v1h-5zM23 5h8v1h-8zM4 6h5v1h-5zM23 6h8v1h-8zM4 7h5v1h-5zM23 7h8v1h-8zM4 8h5v1h-5zM23 8h8v1h-8zM4 9h5v1h-5zM23 9h8v1h-8zM4 10h5v1h-5zM23 10h8v1h-8zM4 11h5v1h-5zM23 11h8v1h-8zM4 12h27v1h-27zM4 13h27v1h-27zM4 14h27v1h-27zM4 15h3v1h-3zM27 15h4v1h-4zM4 16h2v1h-2zM28 16h3v1h-3zM4 17h2v1h-2zM28 17h3v1h-3zM4 18h2v1h-2zM28 18h3v1h-3zM4 19h2v1h-2zM28 19h3v1h-3zM4 20h2v1h-2zM28 20h3v1h-3zM4 21h2v1h-2zM28 21h3v1h-3zM4 22h2v1h-2zM28 22h3v1h-3zM4 23h2v1h-2zM28 23h3v1h-3zM4 24h2v1h-2zM28 24h3v1h-3zM4 25h2v1h-2zM28 25h3v1h-3zM28 26h3v1h-3zM28 27h3v1h-3zM4 28h2v1h-2zM28 28h3v1h-3z"/><path fill="#bbb" d="M10 3h12v1h-12zM10 4h1v1h-1zM20 4h2v1h-2zM10 5h1v1h-1zM12 5h5v1h-5zM20 5h2v1h-2zM10 6h1v1h-1zM12 6h5v1h-5zM20 6h2v1h-2zM10 7h1v1h-1zM12 7h5v1h-5zM20 7h2v1h-2zM10 8h1v1h-1zM12 8h5v1h-5zM20 8h2v1h-2zM10 9h1v1h-1zM12 9h5v1h-5zM20 9h2v1h-2zM10 10h12v1h-12z"/><path fill="#eee" d="M11 4h6v1h-6zM11 5h1v1h-1zM11 6h1v1h-1zM11 7h1v1h-1zM11 8h1v1h-1zM11 9h1v1h-1z"/><path fill="#fff" d="M7 18h20v1h-20zM7 19h20v1h-20zM7 20h2v1h-2zM25 20h2v1h-2zM7 21h20v1h-20zM7 22h2v1h-2zM25 22h2v1h-2zM7 23h20v1h-20zM7 24h2v1h-2zM25 24h2v1h-2zM7 25h20v1h-20zM7 26h20v1h-20zM7 27h20v1h-20zM7 28h20v1h-20z"/><path fill="#9a9a9a" d="M9 20h16v1h-16zM9 22h16v1h-16zM9 24h16v1h-16z"/><path fill="var(--c)" d="M7 16h20v1h-20zM7 17h20v1h-20z"/></symbol></svg>
 <nav class="menubar" id="menubar" aria-label="Games">
-  <a href="#" title="All games" aria-label="All games"><svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 1h10v1H3zM2 2h1v11H2zM13 2h1v11h-1zM4 3h8v1H4zM4 4h1v5H4zM11 4h1v5h-1zM4 9h8v1H4zM6 5h1v1H6zM9 5h1v1H9zM6 7h4v1H6zM2 13h12v1H2zM3 14h10v1H3zM9 11h3v1H9z"/></svg></a>
+  <a href="#" aria-label="All games"><svg class="logo" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#5a5acf" d="M2 1h12v10H2z"/><path fill="#fff" d="M4 3h8v6H4z"/><path fill="#5a5acf" d="M6 5h1v1H6zM9 5h1v1H9zM6 7h4v1H6z"/><path fill="#999" d="M1 12h14v3H1z"/></svg></a>
 </nav>
 <main id="main"></main>
 <script>
@@ -121,54 +115,55 @@ const GAMES = [
   { id: 'glider-pro', w: 640, h: 480, keys: true, mb: 19 },
   { id: 'ev-nova', w: 800, h: 600, keys: true, mb: 185 },
 ];
+// One color per game, taken from its box art. Unknown ids get a fallback.
+const COLORS = { 'scarab-of-ra': '#d39b22', 'dark-castle': '#6b3fa0', 'oregon-trail': '#2f8a4f', 'shufflepuck-cafe': '#d23c77', 'simcity-2000': '#2f63b8', 'glider-pro': '#3c9ad6', 'ev-nova': '#e0782a' };
+const color = (id, i) => COLORS[id] || ['#c0504d', '#4f81bd', '#9bbb59', '#8064a2'][i % 4];
 const main = document.getElementById('main');
 const menubar = document.getElementById('menubar');
 let credits = {};
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const win = (title, body, cls = '', tag = 'h2') =>
-  `<section class="window ${cls}"><div class="titlebar"><a class="closebox" href="#" aria-label="Close"></a><${tag}>${esc(title)}</${tag}></div><div class="content">${body}</div></section>`;
-const disk = '<svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M1 1h13v1H1zM1 2h1v13H1zM14 2h1v13h-1zM2 14h12v1H2zM4 2h1v4H4zM11 2h1v4h-1zM5 5h6v1H5zM8 2h2v3H8zM3 8h10v1H3zM3 9h1v5H3zM12 9h1v5h-1zM5 10h6v1H5zM5 12h6v1H5z"/></svg>';
+const win = (title, body, { tag = 'h2', style = '', pad = true } = {}) =>
+  `<section class="window" style="${style}"><div class="titlebar"><a class="closebox" href="#" aria-label="Close"></a><${tag}>${esc(title)}</${tag}></div><div class="pane${pad ? ' content' : ''}">${body}</div></section>`;
+// a System 7 floppy; the label stripe takes the game's color
+const disk = (c) => `<svg viewBox="0 0 32 32" shape-rendering="crispEdges" style="--c:${c}" aria-hidden="true"><use href="#floppy"/></svg>`;
 
 const DISCLAIMER = `These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of them and want it removed, <a href="${REPO}/issues">open an issue</a> and we will remove it.`;
 
 function home() {
   document.title = 'Classic Mac Games';
-  const list = GAMES.map((g) => {
+  const list = GAMES.map((g, i) => {
     const c = credits[g.id] || {};
-    return `<li><a href="#${g.id}">${disk}<span class="name">${esc(c.title || g.id)}</span><span class="meta">${esc(c.year || '')} · ${esc((c.authors || []).join(', '))}</span></a></li>`;
+    return `<li><a href="#${g.id}">${disk(color(g.id, i))}<span class="name">${esc(c.title || g.id)}</span><span class="meta">${esc(c.year || '')}, ${esc((c.authors || []).join(', '))}</span></a></li>`;
   }).join('');
   main.innerHTML =
-    win('Classic Mac Games', `<p>Seven classic 68k Macintosh games that run in your browser. There is no Mac ROM and no Mac system software: <a href="https://github.com/autc04/executor">Executor</a> reimplements the Mac Toolbox and is compiled to WebAssembly.</p><ul class="icons">${list}</ul>`, '', 'h1') +
-    win('About', `<p><a href="${REPO}#readme">How it works</a> · <a href="${REPO}">Source code</a></p><p>All the games come from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors and links to its Garden page.</p><p class="note">${DISCLAIMER}</p>`);
+    win('Classic Mac Games', `<p class="lede">${GAMES.length} classic Macintosh games that run in your browser. No Mac ROM, no system software: <a href="https://github.com/autc04/executor">Executor</a> rebuilds the Mac Toolbox and runs here as WebAssembly.</p><ul class="icons">${list}</ul>`, { tag: 'h1' }) +
+    win('About This Site', `<p><a class="button" href="${REPO}#readme">How it works</a> <a class="button" href="${REPO}">Source code</a></p><p>All the games come from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors and links to its Garden page.</p><p class="note">${DISCLAIMER}</p>`, { style: 'max-width: 600px' });
 }
 
 function play(g) {
   const c = credits[g.id] || {};
   document.title = (c.title || g.id) + ' · Classic Mac Games';
-  const by = (c.authors || []).join(', ');
-  main.innerHTML =
-    win(c.title || g.id, `<iframe class="screen" src="executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>`)
-      .replace('class="window ', `style="max-width: ${g.w + 2}px" class="window `).replace('class="content"', 'class="content" style="padding:0"') +
-    win('Get Info', `
+  main.innerHTML = `<div class="player">` +
+    win(c.title || g.id, `<iframe class="screen" src="executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>`, { style: `max-width: ${g.w + 12}px`, pad: false }) +
+    win(`${c.title || g.id} Info`, `
       <dl>
         <dt>Title</dt><dd>${esc(c.title || g.id)} ${esc(c.version || '')}</dd>
-        <dt>By</dt><dd>${esc(by)}</dd>
+        <dt>By</dt><dd>${esc((c.authors || []).join(', '))}</dd>
         <dt>Publisher</dt><dd>${esc(c.publisher || '')}, ${esc(c.year || '')}</dd>
         <dt>Source</dt><dd><a href="${esc(c.garden_url || '#')}">${esc(c.garden_page_title || 'Macintosh Garden')}</a><br><span class="muted">${esc(c.download_file || '')}</span></dd>
-        <dt>Download</dt><dd>about ${g.mb} MB, the emulator included</dd>
-        <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard. On a phone, you can watch but you cannot play.' : 'Mouse only. A tap is a click.'}</dd>
+        <dt>Download</dt><dd>About ${g.mb} MB, emulator included</dd>
+        <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard. On a phone you can watch, but not play.' : 'Mouse only. A tap is a click.'}</dd>
       </dl>
       <p>${esc(c.description || '')}</p>
-      <p class="note">${DISCLAIMER}</p>`);
+      <p class="note">${DISCLAIMER}</p>`, { style: `max-width: ${g.w + 12}px` }) + `</div>`;
   main.querySelector('iframe').focus();
 }
 
 function route() {
   const id = location.hash.slice(1);
   const g = GAMES.find((x) => x.id === id);
-  for (const a of menubar.querySelectorAll('a[data-id]'))
-    a.toggleAttribute('aria-current', a.dataset.id === id);
+  for (const a of menubar.querySelectorAll('a[data-id]')) a.toggleAttribute('aria-current', a.dataset.id === id);
   g ? play(g) : home();
   window.scrollTo(0, 0);
 }
@@ -176,7 +171,7 @@ function route() {
 fetch('credits.json').then((r) => r.json()).catch(() => ({})).then((c) => {
   credits = c;
   menubar.insertAdjacentHTML('beforeend',
-    GAMES.map((g) => `<a href="#${g.id}" data-id="${g.id}">${esc((c[g.id] || {}).title || g.id)}</a>`).join('') +
+    GAMES.map((g, i) => `<a href="#${g.id}" data-id="${g.id}"><span class="swatch" style="--c:${color(g.id, i)}"></span>${esc((c[g.id] || {}).title || g.id)}</a>`).join('') +
     `<span class="spacer"></span><a href="${REPO}#readme">How it works</a>`);
   addEventListener('hashchange', route);
   route();
