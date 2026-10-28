@@ -32,7 +32,7 @@ Thank you to these authors for their work. Thank you also to the [Macintosh Gard
 Some fixes that the games needed:
 
 - **SimCity 2000 and others:** a short browser click can end before the game reads the mouse. The front end holds the mouse-up until the game has read the mouse-down, for a maximum of 500 ms.
-- **Oregon Trail CD:** one of its pictures has a region larger than 32 KB. Executor read the region length as a signed number, asked for a negative amount of memory, and the game reported that it had run out of memory. Executor now reads the length as unsigned.
+- **Oregon Trail CD:** one of its pictures has a region larger than 32 KB. Executor read the region length as a signed number, asked for a negative amount of memory, and the game reported that it had run out of memory. Executor now reads the length as unsigned. A picture in its first dialog also has junk bytes that make the parser read past its end. DrawPicture now stops at the end of the picture.
 - **Files and math:** local folders accept range locks, and SANE extended-precision floats convert correctly on WebAssembly. The floppy version of Oregon Trail needed both.
 - **Dark Castle:** the game stores flags in the high byte of pointers (24-bit addressing).
 - **EV Nova:** it needed a small Display Manager, screen gamma calls, `GetProcessInformation`, `ParseSndHeader`, clipping for GWorlds larger than the screen, and a decoder for QuickTime "Animation" pictures.
