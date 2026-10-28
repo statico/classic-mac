@@ -1,0 +1,40 @@
+From 557a460b81e97978d40a2eaa065227c28d7662a5 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 18:48:39 -0700
+Subject: [PATCH] wasm: add executor_dump_cpu for diagnosing traps
+
+---
+ src/config/front-ends/wasm/wasm.cpp | 10 ++++++++++
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/config/front-ends/wasm/wasm.cpp b/src/config/front-ends/wasm/wasm.cpp
+index e27dc603..c0a9ca8f 100644
+--- a/src/config/front-ends/wasm/wasm.cpp
++++ b/src/config/front-ends/wasm/wasm.cpp
+@@ -2,6 +2,8 @@
+ #include <emscripten.h>
+ #include <EventMgr.h>
+ #include <OSEvent.h>
++#include <syn68k_public.h>
++#include <cstdio>
+ 
+ using namespace Executor;
+ 
+@@ -114,6 +116,14 @@ EMSCRIPTEN_KEEPALIVE void executor_mouse_button(int down, int h, int v)
+     instance->listener()->mouseButtonEvent(true, h, v);
+ }
+ 
++// Call from JS after a wasm trap. Needs "--debug segfault" for the PC.
++EMSCRIPTEN_KEEPALIVE void executor_dump_cpu()
++{
++    printf("pc=%08x amode=%08x offset=%08x magic=%08x\n", syn68k_current_pc(), cpu_state.amode_p, (unsigned)ROMlib_offset, (unsigned)MAGIC_ADDRESS_BASE);
++    for(int i = 0; i < 16; i++)
++        printf("%c%d=%08x%c", i < 8 ? 'd' : 'a', i & 7, cpu_state.regs[i].ul.n, (i & 7) == 7 ? '\n' : ' ');
++}
++
+ EMSCRIPTEN_KEEPALIVE void executor_key(int down, int mkvkey)
+ {
+     if(instance)
+-- 
+2.56.0
+
