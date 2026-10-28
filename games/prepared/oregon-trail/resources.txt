@@ -1,0 +1,6 @@
+Oregon Trail/Oregon Config: type=ORCF creator=ORGN data=1108 rsrc=0
+Oregon Trail/Oregon Trail: type=APPL creator=ORGN data=0 rsrc=475442
+  types: ALRTx5 BNDLx1 CDEFx3 CNTLx31 CODEx22 CONFx1 CURSx1 DITLx84 DLOGx27 FONDx1 FREFx4 HVofx8 ICN#x4 ICONx25 Imagx33 LDEFx1 MBARx1 MECCx3 MENUx6 NFNTx4 ORGNx1 PICTx5 SIZEx1 STR#x70 Scptx1 WINDx1 WST#x21 cctbx1 icl4x4 icl8x4 ics#x4 ics4x4 ics8x4 plttx1 sndx6 versx1 wctbx1
+  CODE: 0:3440 1:24474 2:6706 3:21326 4:3344 5:24098 6:5750 7:3522 8:4402 9:3410 10:5870 11:862 12:684 13:7122 14:13284 15:6560 16:13400 17:7400 18:5654 19:3572 20:2986 21:3488
+  68k CODE: yes; PPC cfrg: no
+Oregon Trail/Trail Log: type=TEXT creator=ttxt data=6199 rsrc=0

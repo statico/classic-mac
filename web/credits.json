@@ -1,0 +1,115 @@
+{
+  "scarab-of-ra": {
+    "title": "Scarab of Ra",
+    "garden_url": "https://macintoshgarden.org/games/scarab-of-ra",
+    "garden_page_title": "Scarab of Ra - Macintosh Garden",
+    "authors": [
+      "Rick Holzgrafe"
+    ],
+    "publisher": "Semicolon Software",
+    "year": "1987",
+    "version": "1.4",
+    "copyright": [
+      "1.4 Copyright © 1987-1992 Rick Holzgrafe",
+      "Copyright © 1987 - 1992 by Rick Holzgrafe",
+      "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
+    ],
+    "download_file": "scarab_of_ra.sit",
+    "download_md5": "3f49dc2ad5e0be07581499710ad90550",
+    "download_label": "DL #1 Scarab of Ra v1.4 (2009-04-18)",
+    "uploaded_by": "",
+    "description": "A turn-based, first-person 3D dungeon crawl. The only escape from the Pyramid of Ra is to gather the sun god's three relics, but the Scarab carries a curse...",
+    "notes": "copyright[0] is the game's 'vers' 1 resource. copyright[1] is its STRS 0 resource. copyright[2] is the Macintosh Garden site disclaimer. The page shows no uploader credit. The page says: \"The author has ported the game to iOS with some optional new mechanics.\" (https://apps.apple.com/us/app/scarab-of-ra/id1573133975). User comments from 2010 say that the game was still active shareware sold through Kagi. The page itself does not give a license. Category on page: RPG."
+  },
+  "dark-castle": {
+    "title": "Dark Castle",
+    "garden_url": "https://macintoshgarden.org/games/dark-castle",
+    "garden_page_title": "Dark Castle - Macintosh Garden",
+    "authors": [
+      "Jonathan Gay",
+      "Mark Stephen Pierce"
+    ],
+    "publisher": "Silicon Beach Software",
+    "year": "1986",
+    "version": "1.1",
+    "copyright": [
+      "1.1, © 1987 Silicon Beach Software, Inc.",
+      "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
+    ],
+    "download_file": "Dark_Castle_0_0.sit",
+    "download_md5": "987ede675faf4a7f9c6b68248ae2a4a3",
+    "download_label": "DL #1 (2016-02-26): Installation of Dark Castle 1.1 that will fit on a single 800k diskette.",
+    "uploaded_by": "",
+    "description": "Dark Castle is a 1986 computer game for the Macintosh published by Silicon Beach Software. It was designed and illustrated by Mark Pierce and programmed by Jonathan Gay.",
+    "notes": "copyright[0] is the 'vers' 1 resource of the Dark Castle application. 'Data A' and 'Data B' have only 'vers' 2 (\"Dark Castle Version 1.1\"). The page lists the file as \"Dark_Castle_0.sit\", but the download URL and the file name are Dark_Castle_0_0.sit. The page gives \"Added by\" credits for DL #2 to #8 only. It gives no uploader for DL #1."
+  },
+  "simcity-2000": {
+    "title": "SimCity 2000",
+    "garden_url": "https://macintoshgarden.org/games/simcity-2000-v10-11",
+    "garden_page_title": "SimCity 2000 (floppy disk) - Macintosh Garden",
+    "authors": [
+      "Maxis"
+    ],
+    "publisher": "Maxis",
+    "year": "1993",
+    "version": "1.1",
+    "copyright": [
+      "SimCity 2000™ has been copyrighted by Maxis in 1993.",
+      "SoundSys & MusicSys © Copyright 1989-1993 HALESTORM, Incorporated, All Rights Reserved",
+      "ResEdit, Apple File Exchange, Sound Manager 3.0, Resourcerer and Access PC are copyrights of their respective owners.",
+      "This text file is in the public domain and may be freely distributed. SimCity 2000 and SimCity 2000 1.1 are NOT in the public domain and may not be freely distributed.",
+      "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
+    ],
+    "download_file": "SimCity_2000_1.1.hqx",
+    "download_md5": "2be203260837573ade7db58e66defc80",
+    "download_label": "DL #2 (2020-03-17): Version 1.1",
+    "uploaded_by": "",
+    "description": "SimCity 2000 is the sequel to the enormously popular city simulator by Will Wright, SimCity. Besides adding new features and complexity, SimCity 2000 introduces a brand-new isometric perspective, giving it a 3D-like look and feel.",
+    "notes": "copyright[0] is the in-game credits (TEXT 128). Line breaks in it are shown as spaces. The credits start: \"Fred Haslam & Will Wright spent altogether too much of their lives thinking about SimCity 2000™\". copyright[1] is a DATA 0 resource string. copyright[2] and copyright[3] are the \"Legal Stuff\" section of 'SimCity 2000™ 1.1 Read Me', which is in the hosted files. copyright[3] says that the game may not be freely distributed. The 'vers' resource has no copyright text (\"SimCity2000™ v1.1\", \"The Ultimate City Simulator\"). The page shows no uploader credit."
+  },
+  "oregon-trail": {
+    "title": "The Oregon Trail",
+    "garden_url": "https://macintoshgarden.org/games/the-oregon-trail",
+    "garden_page_title": "The Oregon Trail  - Macintosh Garden",
+    "authors": [
+      "MECC"
+    ],
+    "publisher": "MECC",
+    "year": "1992",
+    "version": "1.0",
+    "copyright": [
+      "1.0, Copyright MECC 1991",
+      "Version 1.0, Copyright MECC 1991",
+      "Copyright 1991, MECC",
+      "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
+    ],
+    "download_file": "OregonTrail.sit",
+    "download_md5": "cc362be4b71ca399424863f2ed4b70cf",
+    "download_label": "Download 1 (2025-04-19): version 1.0 in a Stuffit Archive, featuring a beige color.",
+    "uploaded_by": "",
+    "description": "The Oregon Trail is an educational computer game developed by Don Rawitsch, Bill Heinemann, and Paul Dillenberger in 1971 and produced by MECC beginning in 1975. The game was inspired by the real-life Oregon Trail and was designed to teach school children about the realities of 19th century pioneer life on the trail. The player assumes the role of a wagon leader guiding a party of settlers from Independence, Missouri, to Oregon's Willamette Valley in 1848.",
+    "notes": "copyright[0] is the 'vers' 1 resource. copyright[1] is the ORGN 0 resource. copyright[2] is the About box (DITL 2001, which also says \"Brought to you by:\"). The page gives the year as 1992, but the game says 1991. The page shows no uploader for Download 1. The other agent fetched OregonTrail.sit and oregontrail_1_2.zip. The hosted files (Oregon Config, Oregon Trail, Trail Log, 'vers' 1.0) match OregonTrail.sit. The other agent must confirm this choice."
+  },
+  "shufflepuck-cafe": {
+    "title": "Shufflepuck Café",
+    "garden_url": "https://macintoshgarden.org/games/shufflepuck-cafe",
+    "garden_page_title": "Shufflepuck Café - Macintosh Garden",
+    "authors": [
+      "Christopher Gross",
+      "Brøderbund"
+    ],
+    "publisher": "Brøderbund",
+    "year": "1988",
+    "version": "14C (near-final pre-release, cheat menu)",
+    "copyright": [
+      "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
+    ],
+    "download_file": "SPuck.zip",
+    "download_md5": "d8e99d8bf52dd78113f9d15ed25ba2fe",
+    "download_label": "DL #3 (2016-04-22): ZIP file added for use with emulators. Disk image used: 'Shufflepuck Cafe (cheats).dsk'.",
+    "uploaded_by": "",
+    "description": "You [are] thrust into [a] rough and tumble space bar, clearly the outsider, forced to prove yourself in a true game of wits and agility: computer air hockey. It was a simple game for simple times: a handful of wacky alien characters, mild nudity, and an animated screen crack when your opponent scored. Ah to go back for one more round.",
+    "description_credit": "Quoted on the Macintosh Garden page from: Putney, Dean \"Nostalgia: Shufflepuck Café\", Cult of Mac (http://cultofmac.com/nostalgia-shufflepuck-cafe/6399)",
+    "notes": "The hosted application matches 'Shufflepuck Cafe (cheats).dsk' in SPuck.zip byte for byte. It does not match the 1.0 disk or the 'nude' disk. The page calls this build \"Version 14C: A near-final pre-release build, with a cheat menu and zero copy protection\", and says that its \"about box, and title screen copyright\" differ from 1.0. The application has no 'vers' resource and no copyright text in its string resources. The copyright is drawn in PICT images, which we could not render, so it is not recorded here. Read it from the About box or title screen in the running game. The page shows no uploader credit. The other agent must confirm the download file and version."
+  }
+}
