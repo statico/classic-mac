@@ -18,7 +18,7 @@ extract() { # archive outdir   (-k fork => native forks; -k hidden drops FinderI
   rm -rf "$2"; mkdir -p "$2"; unar -q -k fork -o "$2" "$1"
 }
 
-# Scarab of Ra 1.4 (Rich Fowler) -- latest version on the Garden
+# Scarab of Ra 1.4 (Rick Holzgrafe) -- latest version on the Garden
 fetch scarab-of-ra scarab_of_ra.sit 3f49dc2ad5e0be07581499710ad90550
 extract "$RAW/scarab-of-ra/scarab_of_ra.sit" "$RAW/scarab-of-ra/extracted"
 

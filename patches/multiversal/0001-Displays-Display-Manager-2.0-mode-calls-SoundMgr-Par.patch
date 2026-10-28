@@ -1,5 +1,5 @@
 From 201a561d99d77c7279e162f15cd57282e516f23f Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 19:30:17 -0700
 Subject: [PATCH] Displays: Display Manager 2.0 mode calls; SoundMgr:
  ParseSndHeader

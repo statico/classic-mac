@@ -1,5 +1,5 @@
 From 5304d9e49605a3469d97af6586a760d522dee80d Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Wed, 14 Oct 2026 22:26:30 -0700
 Subject: [PATCH] wasm: hold mouseUp until the app has fetched mouseDown
 

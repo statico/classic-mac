@@ -4,6 +4,7 @@ build*/
 node_modules/
 .DS_Store
 web/dbg/
-# EV Nova is 170 MB: too big for git. Rebuild it (see games/README.md).
+# EV Nova's prepared tree is 170 MB. The web bundle is in git as 45 MB parts.
 games/prepared/ev-nova/
-web/executor/games/ev-nova.*
+web/executor/games/ev-nova.data
+.vercel

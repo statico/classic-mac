@@ -67,7 +67,7 @@ Verification: we read each `.hfv` back with python `machfs` and unpacked each `.
 - Author: Ambrosia Software (2002). Shareware.
 - Files: `EV Nova/EV Nova` (the app), `Nova Files/`, `Nova Plug-ins/` and `Pilots/`. `fetch-games.sh` removes the documents and the four `Race *.mov` movies.
 - Resources: fat app with 12 68k CODE resources and a Carbon PEF (`carb`). Executor runs the 68k code.
-- The game data is 170 MB. This is more than the 100 MB file limit of GitHub, so git does not keep `games/prepared/ev-nova/` or `web/executor/games/ev-nova.*`. To make them again, do these steps:
+- The game data is 170 MB. This is more than the 100 MB file limit of GitHub. Git keeps the web bundle as four 45 MB parts (`web/executor/games/ev-nova.data.aa` to `.ad`), but not `games/prepared/ev-nova/`. To make them again, do these steps:
 
 ```sh
 scripts/fetch-games.sh

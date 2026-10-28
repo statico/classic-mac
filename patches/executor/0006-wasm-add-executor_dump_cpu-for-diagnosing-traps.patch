@@ -1,5 +1,5 @@
 From 557a460b81e97978d40a2eaa065227c28d7662a5 Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 18:48:39 -0700
 Subject: [PATCH] wasm: add executor_dump_cpu for diagnosing traps
 

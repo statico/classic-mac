@@ -1,5 +1,5 @@
 From 50b292d7c3d808d8c9e6b4016496c2bc5fa0cec9 Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 18:48:39 -0700
 Subject: [PATCH] wasm: drop pointer high byte when an address falls outside
  memory

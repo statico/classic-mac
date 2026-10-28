@@ -1,5 +1,5 @@
 From 69c7d55784b1e5702aff558e7ba8fdc64277e000 Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 20:02:32 -0700
 Subject: [PATCH] EV Nova: GWorld visRgn covers the whole GWorld; decode
  QuickTime Animation pictures

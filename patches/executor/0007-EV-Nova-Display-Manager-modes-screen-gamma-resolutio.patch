@@ -1,5 +1,5 @@
 From dfc49038b0339f20695fb820034631a5bd2836be Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 19:30:17 -0700
 Subject: [PATCH] EV Nova: Display Manager modes, screen gamma/resolution
  status, process app spec, ParseSndHeader, QuickTime gestalt

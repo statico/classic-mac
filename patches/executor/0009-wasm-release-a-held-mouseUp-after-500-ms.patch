@@ -1,5 +1,5 @@
 From f220a8b4cc02d9afa4dd825eac870ac8d1dc4671 Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Tue, 27 Oct 2026 20:23:10 -0700
 Subject: [PATCH] wasm: release a held mouseUp after 500 ms
 

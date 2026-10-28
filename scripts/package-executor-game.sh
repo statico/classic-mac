@@ -10,3 +10,10 @@ mkdir -p "$ROOT/web/executor/games"
 cd "$ROOT/web/executor/games"
 python3 "$EMSDK/upstream/emscripten/tools/file_packager.py" "$id.data" \
   --preload "$ROOT/games/prepared/$id/appledouble-percent@/games/$id" --js-output="$id.js"
+# GitHub and Vercel refuse files over 100 MB. Split big bundles into 45 MB
+# parts (<id>.data.aa, .ab, ...); web/executor/index.html joins them.
+if [ "$(wc -c < "$id.data")" -gt 50000000 ]; then
+  rm -f "$id.data".??
+  split -b 45m "$id.data" "$id.data."
+  rm "$id.data"
+fi

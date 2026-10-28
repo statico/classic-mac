@@ -1,5 +1,5 @@
 From a26d352e75053addf57868a826b4e681ef9305c3 Mon Sep 17 00:00:00 2001
-From: Ian Langworth <ian@langworth.com>
+From: Claude Code <noreply@anthropic.com>
 Date: Wed, 14 Oct 2026 21:57:33 -0700
 Subject: [PATCH] wasm: little-endian detection and host poll hook for
  Emscripten
