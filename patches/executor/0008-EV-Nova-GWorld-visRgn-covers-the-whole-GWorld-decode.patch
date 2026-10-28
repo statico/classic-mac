@@ -1,0 +1,155 @@
+From 69c7d55784b1e5702aff558e7ba8fdc64277e000 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 20:02:32 -0700
+Subject: [PATCH] EV Nova: GWorld visRgn covers the whole GWorld; decode
+ QuickTime Animation pictures
+
+NewGWorld left the screen's visRgn on the port, so drawing into a GWorld
+taller than the screen lost its lower rows.  PICT opcode 0x8200 with the
+16-bit 'rle ' codec is now decoded instead of skipped.
+---
+ src/quickdraw/qGWorld.cpp   |  3 ++
+ src/quickdraw/qPicstuff.cpp | 99 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 102 insertions(+)
+
+diff --git a/src/quickdraw/qGWorld.cpp b/src/quickdraw/qGWorld.cpp
+index e7f48b78..29d7115a 100644
+--- a/src/quickdraw/qGWorld.cpp
++++ b/src/quickdraw/qGWorld.cpp
+@@ -268,6 +268,9 @@ QDErr Executor::C_NewGWorld(GUEST<GWorldPtr> *graphics_world_out,
+ 
+         PORT_RECT(graphics_world) = PIXMAP_BOUNDS(gw_pixmap) = *bounds;
+     }
++    /* OpenCPort gave us the screen's visRgn; a GWorld taller or wider
++       than the screen (EV Nova's banner strip) must not be clipped to it */
++    RectRgn(PORT_VIS_REGION(graphics_world), &PORT_RECT(graphics_world));
+ 
+     /* mark as a GWorld and not a CGrafPort */
+     CPORT_VERSION(graphics_world) |= GW_FLAG_BIT;
+diff --git a/src/quickdraw/qPicstuff.cpp b/src/quickdraw/qPicstuff.cpp
+index f4b71432..a8233225 100644
+--- a/src/quickdraw/qPicstuff.cpp
++++ b/src/quickdraw/qPicstuff.cpp
+@@ -24,6 +24,7 @@
+ #include <rsys/executor.h>
+ #include <base/functions.impl.h>
+ #include <algorithm>
++#include <vector>
+ 
+ using namespace Executor;
+ 
+@@ -1482,6 +1483,102 @@ static unsigned short nextop(INTEGER vers)
+ 
+ #define SE(x) ((x & 0x80) ? x | (~0 ^ 0xff) : x & 0xff) /* sign extend */
+ 
++/*
++ * Opcode 0x8200, CompressedQuickTime.  We have no QuickTime, so we decode
++ * only the 16-bit Animation codec ('rle ', EV Nova's menu art) and skip
++ * anything else.
++ */
++static void drawCompressedQuickTime(LONGINT len, const Rect *srcpicframe,
++                                    const Rect *destrp, GrafPtr the_port)
++{
++    std::vector<uint8_t> buf(len);
++    if(procp)
++        procp(buf.data(), len);
++    else
++        memcpy(buf.data(), nextbytep, len);
++    nextbytep += len;
++
++    auto be16 = [&](size_t o) -> int { return o + 2 <= buf.size() ? int16_t(buf[o] << 8 | buf[o + 1]) : 0; };
++    auto be32 = [&](size_t o) -> int32_t { return o + 4 <= buf.size() ? int32_t(uint32_t(be16(o)) << 16 | uint16_t(be16(o + 2))) : 0; };
++
++    /* version 0, matrix 2, matteSize 38, mode 50, srcRect 52, maskSize 64 */
++    size_t id = 68 + be32(64);
++    int w = be16(id + 32), ht = be16(id + 34);
++    if(len < 68 || be32(38) || be32(id + 4) != "rle "_4 || be16(id + 82) != 16
++       || be32(2) != 0x10000 || be32(6) || be32(14) || be32(18) != 0x10000
++       || w <= 0 || ht <= 0)
++    {
++        warning_unimplemented("QuickTime picture data skipped");
++        return;
++    }
++
++    Handle h = NewHandle(w * 2 * ht);
++    if(!h)
++        return;
++    HLock(h);
++    uint8_t *pix = (uint8_t *)*h;
++    memset(pix, 0, w * 2 * ht);
++
++    /* Animation codec: chunk size, header, then per line a skip count and
++       codes: 0 = skip, -1 = end of line, <0 = repeat a pixel, >0 = literal */
++    size_t p = id + be32(id), end = std::min(buf.size(), p + (be32(p) & 0xFFFFFF));
++    p += 4;
++    int y = 0, lines = ht;
++    if(be16(p) & 8)
++    {
++        y = be16(p + 2);
++        lines = be16(p + 6);
++        p += 8;
++    }
++    p += 2;
++    auto put = [&](int x, size_t from) {
++        if(x >= 0 && x < w && y < ht && from + 2 <= end)
++            memcpy(pix + (y * w + x) * 2, &buf[from], 2);
++    };
++    for(; lines > 0 && y < ht && p < end; lines--, y++)
++    {
++        int x = buf[p++] - 1;
++        while(p < end)
++        {
++            int8_t code = buf[p++];
++            if(code == -1)
++                break;
++            if(code == 0)
++                x += buf[p++] - 1;
++            else if(code < 0)
++            {
++                for(int i = 0; i < -code; i++)
++                    put(x++, p);
++                p += 2;
++            }
++            else
++                for(int i = 0; i < code; i++, p += 2)
++                    put(x++, p);
++        }
++    }
++
++    PixMap pm;
++    memset(&pm, 0, sizeof pm);
++    pm.baseAddr = (Ptr)pix;
++    pm.rowBytes = (w * 2) | 0x8000;
++    pm.bounds = Rect{ 0, 0, (INTEGER)ht, (INTEGER)w };
++    pm.hRes = pm.vRes = 72 << 16;
++    pm.pixelType = RGBDirect;
++    pm.pixelSize = 16;
++    pm.cmpCount = 3;
++    pm.cmpSize = 5;
++    pm.pmTable = (CTabHandle)NewHandle(sizeof(ColorTable));
++
++    Rect src = { (INTEGER)be16(52), (INTEGER)be16(54), (INTEGER)be16(56), (INTEGER)be16(58) };
++    Rect dst = src;
++    OffsetRect(&dst, be32(26) >> 16, be32(30) >> 16); /* matrix translation */
++    MapRect(&dst, srcpicframe, destrp);
++    CopyBits((BitMap *)&pm, PORT_BITS_FOR_COPY(the_port), &src, &dst, be16(50), nullptr);
++
++    DisposeHandle((Handle)pm.pmTable);
++    DisposeHandle(h);
++}
++
+ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+ {
+     INTEGER words[2], *wp;
+@@ -1899,6 +1996,8 @@ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+             /* reserved */
+             eatLONGINT();
+         }
++        else if(opcode == 0x8200)
++            drawCompressedQuickTime(eatLONGINT(), &srcpicframe, destrp, the_port);
+         else
+         {
+             warning_unexpected("hit opcode `0x%X' with no table entry",
+-- 
+2.56.0
+
