@@ -86,7 +86,7 @@ var Module = {
     for (let i = 0; i < n; i++) out[i] = (src[i] - 128) / 128;
     const node = audio.createBufferSource();
     node.buffer = buf;
-    node.connect(audio.destination);
+    node.connect(master);
     node.start(audioAt[stream]);
     audioAt[stream] += n / rate;
   },
@@ -95,10 +95,10 @@ var Module = {
     Module.beeps = (Module.beeps || 0) + 1;
     if (!audio || audio.state !== 'running') return;
     const osc = audio.createOscillator(), gain = audio.createGain();
-    osc.type = 'square';
+    osc.type = 'triangle';
     osc.frequency.value = 880;
-    gain.gain.value = 0.15;
-    osc.connect(gain).connect(audio.destination);
+    gain.gain.value = 0.25;
+    osc.connect(gain).connect(master);
     osc.start();
     osc.stop(audio.currentTime + 0.12);
   },
@@ -110,12 +110,19 @@ var Module = {
   },
 };
 
-// Browsers start audio only after a user gesture.
-let audio = null, audioAt = [0, 0];
+// Browsers start audio only after a user gesture. The click on the site's
+// game link counts (the iframe has allow="autoplay"), so try at load too.
+let audio = null, master = null, audioAt = [0, 0];
 function startAudio() {
-  if (!audio) audio = new AudioContext();
-  if (audio.state !== 'running') audio.resume();
+  if (!audio) {
+    audio = new AudioContext();
+    master = audio.createGain();
+    master.gain.value = 0.5; // full-scale 8-bit Mac samples are loud
+    master.connect(audio.destination);
+  }
+  if (audio.state !== 'running') audio.resume().catch(() => {});
 }
+startAudio();
 canvas.addEventListener('pointerdown', startAudio);
 canvas.addEventListener('keydown', startAudio);
 
