@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classic Mac Games</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Rethink+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* a software-store shelf: pegboard wall, one colored box spine per game */
+  :root {
+    --wall: #cfd7de; --hole: #b2bcc5; --ledge: #8a5a35; --ledge-lo: #5e3b20;
+    --card: #fbfaf7; --text: #1f2429; --muted: #59636c; --link: #1f5fbf; --edge: #9aa5af;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --wall: #232a31; --hole: #171c21; --ledge: #6a4429; --ledge-lo: #3e2715;
+      --card: #2d353d; --text: #e8edf1; --muted: #a2adb7; --link: #8cb8ff; --edge: #3f4a54;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh; color: var(--text);
+    font: 16px/1.55 "Rethink Sans", system-ui, sans-serif;
+    background: var(--wall) radial-gradient(circle, var(--hole) 2.5px, transparent 3px) 14px 14px / 28px 28px;
+  }
+  a { color: var(--link); }
+  :focus-visible { outline: 3px solid var(--link); outline-offset: 3px; }
+  .display { font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 900; letter-spacing: .01em; line-height: .9; }
+
+  .menubar {
+    position: sticky; top: 0; z-index: 2; display: flex; height: 44px; padding: 0 10px;
+    background: var(--card); border-bottom: 1px solid var(--edge);
+    overflow-x: auto; scrollbar-width: none; white-space: nowrap; font-weight: 600; font-size: 15px;
+  }
+  .menubar::-webkit-scrollbar { display: none; }
+  .menubar a { display: flex; align-items: center; padding: 0 12px; color: var(--text); text-decoration: none; border-bottom: 4px solid transparent; border-top: 4px solid transparent; }
+  .menubar a:hover, .menubar a[aria-current] { border-bottom-color: var(--c, var(--link)); }
+  .menubar a:focus-visible { outline-offset: -3px; }
+  .menubar .home { font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 900; font-size: 22px; }
+  .menubar .spacer { flex: 1; }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 20px 64px; }
+  .intro { max-width: 40em; margin-bottom: 36px; background: var(--card); padding: 18px 22px; border: 1px solid var(--edge); }
+  .intro h1 { margin: 0 0 8px; font-size: 56px; }
+  .intro p { margin: 0; }
+
+  /* the shelf */
+  .shelf { list-style: none; margin: 0; padding: 0 12px; display: flex; gap: 6px; align-items: flex-end; min-height: 420px; }
+  .shelf li { flex: 1; min-width: 0; }
+  .spine {
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 14px;
+    height: var(--h, 380px); padding: 14px 8px 12px; text-decoration: none;
+    background: var(--c); color: var(--t);
+    box-shadow: inset 6px 0 rgb(255 255 255 / .18), inset -6px 0 rgb(0 0 0 / .18);
+    transition: transform .18s;
+  }
+  .spine:hover, .spine:focus-visible { transform: translateY(-16px); }
+  .spine:focus-visible { outline-color: var(--text); }
+  .spine .title { writing-mode: vertical-rl; font-size: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .spine .year, .spine .pub { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; }
+  .ledge { height: 18px; margin: 0 -4px; background: var(--ledge); box-shadow: 0 6px 0 var(--ledge-lo), 0 14px 18px rgb(0 0 0 / .25); }
+
+  .notes { margin-top: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .notes section { background: var(--card); border: 1px solid var(--edge); padding: 18px 22px; }
+  .notes h2 { margin: 0 0 8px; font-size: 30px; }
+  .notes p { margin: 0 0 10px; }
+  .fine { font-size: 14px; color: var(--muted); }
+
+  /* player */
+  .stage { margin: 0 auto; }
+  .stage header { background: var(--c); color: var(--t); padding: 14px 18px 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  .stage h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); min-width: 0; overflow-wrap: anywhere; }
+  .stage header span { font-weight: 600; white-space: nowrap; }
+  .screen { display: block; width: 100%; border: 0; background: #000; }
+  .back { margin-top: 24px; background: var(--card); border: 1px solid var(--edge); border-top: 10px solid var(--c); padding: 20px 22px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; }
+  .back p { margin: 0 0 12px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0 0 12px; align-content: start; }
+  dt { font-weight: 600; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 720px) {
+    main { padding: 24px 16px 48px; }
+    .intro h1 { font-size: 44px; }
+    /* boxes lie flat, stacked */
+    .shelf { flex-direction: column-reverse; align-items: stretch; gap: 4px; min-height: 0; padding: 0 6px; }
+    .spine { height: 64px; flex-direction: row; padding: 0 14px; }
+    .spine:hover, .spine:focus-visible { transform: translateX(10px); }
+    .spine .title { writing-mode: horizontal-tb; font-size: 30px; order: -1; text-align: left; }
+    .spine .pub { display: none; }
+    .notes, .back { grid-template-columns: 1fr; }
+    dl { grid-template-columns: 1fr; gap: 0; }
+    dd { margin-bottom: 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .spine { transition: none; } }
+</style>
+</head>
+<body>
+<nav class="menubar" id="menubar" aria-label="Games">
+  <a class="home" href="#">Classic Mac Games</a>
+</nav>
+<main id="main"></main>
+<script>
+const REPO = 'https://github.com/statico/classic-mac';
+// Screen sizes match the --size and --bpp args in executor/index.html.
+// keys: the game needs a keyboard. mb: rough download size.
+const GAMES = [
+  { id: 'scarab-of-ra', w: 640, h: 480, keys: true, mb: 13 },
+  { id: 'dark-castle', w: 640, h: 480, keys: true, mb: 14 },
+  { id: 'oregon-trail', w: 640, h: 480, keys: false, mb: 14 },
+  { id: 'shufflepuck-cafe', w: 640, h: 480, keys: false, mb: 14 },
+  { id: 'simcity-2000', w: 640, h: 480, keys: false, mb: 17 },
+  { id: 'glider-pro', w: 640, h: 480, keys: true, mb: 19 },
+  { id: 'ev-nova', w: 800, h: 600, keys: true, mb: 185 },
+];
+// Spine color, text color and height per game. Unknown ids get a fallback.
+const SPINES = {
+  'scarab-of-ra': ['#d6a02a', '#2b1c04', 340], 'dark-castle': ['#4a2a6e', '#f1e6ff', 390],
+  'oregon-trail': ['#2f7d4a', '#f6f1dc', 360], 'shufflepuck-cafe': ['#d23c77', '#fff4f8', 330],
+  'simcity-2000': ['#2c5aa6', '#ffffff', 400], 'glider-pro': ['#8cc4e8', '#0d2a42', 350],
+  'ev-nova': ['#151b3d', '#f6a33c', 380],
+};
+const spine = (id, i) => SPINES[id] || [['#c0504d', '#fff', 360], ['#3f7f7f', '#fff', 340]][i % 2];
+const main = document.getElementById('main');
+const menubar = document.getElementById('menubar');
+let credits = {};
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const vars = (id, i) => { const [c, t, h] = spine(id, i); return `--c:${c};--t:${t};--h:${h}px`; };
+const DISCLAIMER = `These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of them and want it removed, <a href="${REPO}/issues">open an issue</a> and we will remove it.`;
+
+function home() {
+  document.title = 'Classic Mac Games';
+  const list = GAMES.map((g, i) => {
+    const c = credits[g.id] || {};
+    return `<li><a class="spine" href="#${g.id}" style="${vars(g.id, i)}"><span class="year">${esc(c.year || '')}</span><span class="title display">${esc(c.title || g.id)}</span><span class="pub">${esc(c.publisher || '')}</span></a></li>`;
+  }).join('');
+  main.innerHTML = `
+    <div class="intro"><h1 class="display">Classic Mac Games</h1>
+      <p>Pick a box off the shelf. ${GAMES.length} Macintosh games run right here in your browser, on <a href="https://github.com/autc04/executor">Executor</a> compiled to WebAssembly. No Mac ROM, no system software.</p></div>
+    <ul class="shelf">${list}</ul><div class="ledge"></div>
+    <div class="notes">
+      <section><h2 class="display">How it works</h2><p>Executor was a commercial Mac emulator from 1990. It rebuilds the Mac Toolbox instead of emulating the hardware. <a href="${REPO}#readme">Read how we ported it</a>, or <a href="${REPO}">see the source code</a>.</p></section>
+      <section><h2 class="display">Credits</h2><p>Every game comes from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors.</p><p class="fine">${DISCLAIMER}</p></section>
+    </div>`;
+}
+
+function play(g, i) {
+  const c = credits[g.id] || {};
+  document.title = (c.title || g.id) + ' · Classic Mac Games';
+  main.innerHTML = `
+    <div class="stage" style="${vars(g.id, i)};max-width:${g.w}px">
+      <header><h1 class="display">${esc(c.title || g.id)}</h1><span>${esc(c.year || '')}</span></header>
+      <iframe class="screen" src="../executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>
+      <section class="back">
+        <div><p>${esc(c.description || '')}</p><p class="fine">${DISCLAIMER}</p></div>
+        <dl>
+          <dt>Version</dt><dd>${esc(c.version || '')}</dd>
+          <dt>By</dt><dd>${esc((c.authors || []).join(', '))}</dd>
+          <dt>Publisher</dt><dd>${esc(c.publisher || '')}, ${esc(c.year || '')}</dd>
+          <dt>Source</dt><dd><a href="${esc(c.garden_url || '#')}">${esc(c.garden_page_title || 'Macintosh Garden')}</a><br><span class="fine">${esc(c.download_file || '')}</span></dd>
+          <dt>Download</dt><dd>About ${g.mb} MB, emulator included</dd>
+          <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard. On a phone you can watch, but not play.' : 'Mouse only. A tap is a click.'}</dd>
+        </dl>
+      </section>
+    </div>`;
+  main.querySelector('iframe').focus();
+}
+
+function route() {
+  const id = location.hash.slice(1);
+  const i = GAMES.findIndex((x) => x.id === id);
+  for (const a of menubar.querySelectorAll('a[data-id]')) a.toggleAttribute('aria-current', a.dataset.id === id);
+  i >= 0 ? play(GAMES[i], i) : home();
+  window.scrollTo(0, 0);
+}
+
+fetch('../credits.json').then((r) => r.json()).catch(() => ({})).then((c) => {
+  credits = c;
+  menubar.insertAdjacentHTML('beforeend',
+    GAMES.map((g, i) => `<a href="#${g.id}" data-id="${g.id}" style="--c:${spine(g.id, i)[0]}">${esc((c[g.id] || {}).title || g.id)}</a>`).join('') +
+    `<span class="spacer"></span><a href="${REPO}#readme">How it works</a>`);
+  addEventListener('hashchange', route);
+  route();
+});
+</script>
+</body>
+</html>

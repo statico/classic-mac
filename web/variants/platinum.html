@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classic Mac Games</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  /* Mac OS 8/9 Platinum: gray bevels, lavender highlight, periwinkle desktop */
+  :root {
+    --desk: #6670ad; --desk-dot: #5a63a0;
+    --plat: #dddddd; --hi: #ffffff; --lo: #8a8a8a; --frame: #333;
+    --text: #1d1d1f; --muted: #555; --sel: #5a5acf; --sel-text: #fff; --soft: #ccccff;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --desk: #1f2440; --desk-dot: #262c4d;
+      --plat: #3b3b43; --hi: #55555f; --lo: #1c1c22; --frame: #0c0c10;
+      --text: #ececf2; --muted: #a8a8b4; --sel: #8c8cff; --sel-text: #10102a; --soft: #34345e;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh; color: var(--text);
+    font: 15px/1.5 Archivo, Geneva, system-ui, sans-serif;
+    background: var(--desk) radial-gradient(var(--desk-dot) 1px, transparent 1.5px) 0 0 / 6px 6px;
+  }
+  a { color: var(--sel); }
+  :focus-visible { outline: 2px solid var(--sel); outline-offset: 2px; }
+
+  .menubar {
+    position: sticky; top: 0; z-index: 2; display: flex; height: 26px; padding: 0 6px;
+    background: linear-gradient(var(--hi), var(--plat)); border-bottom: 1px solid var(--frame);
+    overflow-x: auto; scrollbar-width: none; white-space: nowrap; font-weight: 600; font-size: 14px;
+  }
+  .menubar::-webkit-scrollbar { display: none; }
+  .menubar a { display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--text); text-decoration: none; }
+  .menubar a:hover, .menubar a[aria-current] { background: var(--sel); color: var(--sel-text); }
+  .menubar a:focus-visible { outline-offset: -2px; }
+  .menubar .spacer { flex: 1; }
+  .swatch { width: 9px; height: 9px; border: 1px solid var(--frame); background: var(--c); }
+  .logo { width: 16px; height: 16px; }
+
+  main { padding: 28px 16px 48px; display: grid; gap: 24px; justify-items: center; }
+  .window {
+    width: 100%; max-width: 860px; background: var(--plat);
+    border: 1px solid var(--frame); box-shadow: inset 1px 1px var(--hi), inset -1px -1px var(--lo), 2px 3px 0 rgb(0 0 0 / .28);
+    padding: 0 5px 5px;
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; height: 24px; }
+  .titlebar::before, .titlebar::after {
+    content: ''; flex: 1; height: 11px;
+    background: repeating-linear-gradient(var(--hi) 0 1px, var(--lo) 1px 2px, transparent 2px 3px);
+  }
+  .titlebar h1, .titlebar h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+  .closebox {
+    order: -1; width: 13px; height: 13px; flex: none;
+    background: linear-gradient(135deg, var(--lo), var(--hi)); border: 1px solid var(--frame);
+  }
+  .pane { background: var(--plat); border: 1px solid var(--lo); border-right-color: var(--hi); border-bottom-color: var(--hi); }
+  .content { padding: 18px 20px; }
+  .content p { margin: 0 0 12px; max-width: 68ch; }
+  .content p:last-child { margin-bottom: 0; }
+  .lede { font-size: 17px; }
+  .muted { color: var(--muted); }
+
+  .icons { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 18px 8px; }
+  .icons a { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 8px 4px; color: var(--text); text-decoration: none; }
+  .icons svg { width: 52px; height: 52px; filter: drop-shadow(1px 2px 0 rgb(0 0 0 / .25)); }
+  .icons .name { padding: 1px 5px; font-weight: 600; }
+  .icons a:hover .name, .icons a:focus-visible .name { background: var(--sel); color: var(--sel-text); }
+  .icons a:focus-visible { outline: none; }
+  .icons .meta { font-size: 13px; color: var(--muted); }
+
+  .player { display: grid; gap: 24px; width: 100%; justify-items: center; }
+  .screen { display: block; width: 100%; border: 0; background: #000; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0 0 14px; }
+  dt { font-weight: 600; color: var(--muted); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .note { background: var(--soft); padding: 10px 12px; font-size: 13px; border: 1px solid var(--lo); }
+  .button {
+    display: inline-block; padding: 4px 14px; border: 1px solid var(--frame); border-radius: 4px; color: var(--text); text-decoration: none; font-weight: 600;
+    background: linear-gradient(var(--hi), var(--plat)); box-shadow: inset -1px -1px var(--lo);
+  }
+  @media (max-width: 520px) {
+    main { padding: 16px 16px 32px; }
+    .content { padding: 14px; }
+    dl { grid-template-columns: 1fr; gap: 0; }
+    dd { margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+<nav class="menubar" id="menubar" aria-label="Games">
+  <a href="#" aria-label="All games"><svg class="logo" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#5a5acf" d="M2 1h12v10H2z"/><path fill="#fff" d="M4 3h8v6H4z"/><path fill="#5a5acf" d="M6 5h1v1H6zM9 5h1v1H9zM6 7h4v1H6z"/><path fill="#999" d="M1 12h14v3H1z"/></svg></a>
+</nav>
+<main id="main"></main>
+<script>
+const REPO = 'https://github.com/statico/classic-mac';
+// Screen sizes match the --size and --bpp args in executor/index.html.
+// keys: the game needs a keyboard. mb: rough download size.
+const GAMES = [
+  { id: 'scarab-of-ra', w: 640, h: 480, keys: true, mb: 13 },
+  { id: 'dark-castle', w: 640, h: 480, keys: true, mb: 14 },
+  { id: 'oregon-trail', w: 640, h: 480, keys: false, mb: 14 },
+  { id: 'shufflepuck-cafe', w: 640, h: 480, keys: false, mb: 14 },
+  { id: 'simcity-2000', w: 640, h: 480, keys: false, mb: 17 },
+  { id: 'glider-pro', w: 640, h: 480, keys: true, mb: 19 },
+  { id: 'ev-nova', w: 800, h: 600, keys: true, mb: 185 },
+];
+// One color per game, taken from its box art. Unknown ids get a fallback.
+const COLORS = { 'scarab-of-ra': '#d39b22', 'dark-castle': '#6b3fa0', 'oregon-trail': '#2f8a4f', 'shufflepuck-cafe': '#d23c77', 'simcity-2000': '#2f63b8', 'glider-pro': '#3c9ad6', 'ev-nova': '#e0782a' };
+const color = (id, i) => COLORS[id] || ['#c0504d', '#4f81bd', '#9bbb59', '#8064a2'][i % 4];
+const main = document.getElementById('main');
+const menubar = document.getElementById('menubar');
+let credits = {};
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const win = (title, body, { tag = 'h2', style = '', pad = true } = {}) =>
+  `<section class="window" style="${style}"><div class="titlebar"><a class="closebox" href="#" aria-label="Close"></a><${tag}>${esc(title)}</${tag}></div><div class="pane${pad ? ' content' : ''}">${body}</div></section>`;
+// a colored game disk, Platinum style
+const disk = (c) => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="${c}" d="M1 1h13l1 1v13H1z"/><path fill="#e8e8e8" d="M4 1h8v5H4z"/><path fill="#555" d="M9 2h2v3H9z"/><path fill="#fff" d="M3 8h10v7H3z"/><path fill="#999" d="M5 10h6v1H5zM5 12h6v1H5z"/><path fill="none" stroke="#222" stroke-width="1" d="M1.5 1.5h12l1 1v12h-13z"/></svg>`;
+
+const DISCLAIMER = `These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of them and want it removed, <a href="${REPO}/issues">open an issue</a> and we will remove it.`;
+
+function home() {
+  document.title = 'Classic Mac Games';
+  const list = GAMES.map((g, i) => {
+    const c = credits[g.id] || {};
+    return `<li><a href="#${g.id}">${disk(color(g.id, i))}<span class="name">${esc(c.title || g.id)}</span><span class="meta">${esc(c.year || '')}, ${esc((c.authors || []).join(', '))}</span></a></li>`;
+  }).join('');
+  main.innerHTML =
+    win('Classic Mac Games', `<p class="lede">${GAMES.length} classic Macintosh games that run in your browser. No Mac ROM, no system software: <a href="https://github.com/autc04/executor">Executor</a> rebuilds the Mac Toolbox and runs here as WebAssembly.</p><ul class="icons">${list}</ul>`, { tag: 'h1' }) +
+    win('About This Site', `<p><a class="button" href="${REPO}#readme">How it works</a> <a class="button" href="${REPO}">Source code</a></p><p>All the games come from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors and links to its Garden page.</p><p class="note">${DISCLAIMER}</p>`, { style: 'max-width: 600px' });
+}
+
+function play(g) {
+  const c = credits[g.id] || {};
+  document.title = (c.title || g.id) + ' · Classic Mac Games';
+  main.innerHTML = `<div class="player">` +
+    win(c.title || g.id, `<iframe class="screen" src="../executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>`, { style: `max-width: ${g.w + 12}px`, pad: false }) +
+    win(`${c.title || g.id} Info`, `
+      <dl>
+        <dt>Title</dt><dd>${esc(c.title || g.id)} ${esc(c.version || '')}</dd>
+        <dt>By</dt><dd>${esc((c.authors || []).join(', '))}</dd>
+        <dt>Publisher</dt><dd>${esc(c.publisher || '')}, ${esc(c.year || '')}</dd>
+        <dt>Source</dt><dd><a href="${esc(c.garden_url || '#')}">${esc(c.garden_page_title || 'Macintosh Garden')}</a><br><span class="muted">${esc(c.download_file || '')}</span></dd>
+        <dt>Download</dt><dd>About ${g.mb} MB, emulator included</dd>
+        <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard. On a phone you can watch, but not play.' : 'Mouse only. A tap is a click.'}</dd>
+      </dl>
+      <p>${esc(c.description || '')}</p>
+      <p class="note">${DISCLAIMER}</p>`, { style: `max-width: ${g.w + 12}px` }) + `</div>`;
+  main.querySelector('iframe').focus();
+}
+
+function route() {
+  const id = location.hash.slice(1);
+  const g = GAMES.find((x) => x.id === id);
+  for (const a of menubar.querySelectorAll('a[data-id]')) a.toggleAttribute('aria-current', a.dataset.id === id);
+  g ? play(g) : home();
+  window.scrollTo(0, 0);
+}
+
+fetch('../credits.json').then((r) => r.json()).catch(() => ({})).then((c) => {
+  credits = c;
+  menubar.insertAdjacentHTML('beforeend',
+    GAMES.map((g, i) => `<a href="#${g.id}" data-id="${g.id}"><span class="swatch" style="--c:${color(g.id, i)}"></span>${esc((c[g.id] || {}).title || g.id)}</a>`).join('') +
+    `<span class="spacer"></span><a href="${REPO}#readme">How it works</a>`);
+  addEventListener('hashchange', route);
+  route();
+});
+</script>
+</body>
+</html>
