@@ -71,7 +71,7 @@ var Module = {
   onRuntimeInitialized() {
     status.textContent = gameId;
     canvas.focus();
-    Module.callMain([...game.args, '/games/' + gameId + '/' + game.app]);
+    Module.callMain([...game.args, ...params.getAll('arg'), '/games/' + gameId + '/' + game.app]);
   },
 };
 
