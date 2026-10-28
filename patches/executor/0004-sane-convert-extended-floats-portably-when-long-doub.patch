@@ -1,0 +1,99 @@
+From 19d9ed174e8a68bfa97789d9c1de9ee114a93c8e Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 17:40:02 -0700
+Subject: [PATCH] sane: convert extended floats portably when long double is
+ not x87
+
+On wasm, long double is IEEE binary128. The old code copied the 80-bit
+SANE bytes straight into it, so every extended value was garbage.
+SimCity 2000's centering tool used these values and scrolled the map
+to the wrong place. Build the value with ldexpl/frexpl instead.
+---
+ src/sane/floatconv.h | 53 ++++++++++++++++++++++++++++++--------------
+ 1 file changed, 36 insertions(+), 17 deletions(-)
+
+diff --git a/src/sane/floatconv.h b/src/sane/floatconv.h
+index 02e65fdc..f072a8df 100644
+--- a/src/sane/floatconv.h
++++ b/src/sane/floatconv.h
+@@ -42,17 +42,20 @@ inline ieee_t x80_to_ieee(const x80_t *x)
+     if((exp & 0x7FFF) == 0x7FFF)
+         mant |= 1LL<<63;
+ 
+-    if constexpr(sizeof(ieee_t) >= 10) // ASSUME for now that this is the right kind of extended FP
++    if constexpr(LDBL_MANT_DIG == 64) // x87 extended: same layout as SANE's
+     {
+         memcpy(&retval, &mant, 8);
+         memcpy((char *)&retval + 8, &exp, 2);
+     }
+-    else if constexpr(sizeof(ieee_t) == 8)
++    else // binary128 (wasm) or double: build the value arithmetically
+     {
+-        uint64_t bits = 0;
+-        bits |= uint64_t(exp >> 4ULL) << 52ULL;
+-        bits |= (mant & ~(1ULL << 63ULL)) >> 11;
+-        std::memcpy(&retval, &bits, 8);
++        int e = exp & 0x7FFF;
++        if(e == 0x7FFF)
++            retval = (mant << 1) ? NAN : INFINITY;
++        else
++            retval = ldexpl((ieee_t)mant, (e ? e : 1) - 16383 - 63);
++        if(exp & 0x8000)
++            retval = -retval;
+     }
+     return retval;
+ }
+@@ -62,23 +65,39 @@ inline void ieee_to_x80(ieee_t n, x80_t *x)
+     uint64_t mant;
+     uint16_t exp;
+ 
+-    if constexpr(sizeof(ieee_t) >= 10) // ASSUME for now that this is the right kind of extended FP
++    if constexpr(LDBL_MANT_DIG == 64) // x87 extended: same layout as SANE's
+     {
+         memcpy(&mant, &n, 8);
+         memcpy(&exp, (char *)&n + 8, 2);
+     }
+-    else if constexpr(sizeof(ieee_t) == 8)
++    else // binary128 (wasm) or double
+     {
+-        uint64_t bits;
+-        memcpy(&bits, &n, 8);
+-
+-        exp = (bits >> 52ULL) << 4ULL;
+-        mant = (bits & ((1ULL << 52ULL) - 1)) << 11;
+-
+-        if((exp & 0x7FFF) == 0)
+-            ;
++        exp = signbit(n) ? 0x8000 : 0;
++        n = fabsl(n);
++        if(n != n)
++            exp |= 0x7FFF, mant = 0xC000000000000000ULL;
++        else if(isinf(n))
++            exp |= 0x7FFF, mant = 0;
++        else if(n == 0)
++            mant = 0;
+         else
+-            mant |= 1ULL << 63;
++        {
++            int e;
++            ieee_t m = ldexpl(frexpl(n, &e), 64); // in [2^63, 2^64)
++            m = rintl(m);
++            if(m >= 0x1p64L)
++                m /= 2, e++;
++            int be = e - 1 + 16383;
++            if(be <= 0) // denormal
++            {
++                m = rintl(ldexpl(m, be - 1));
++                be = 0;
++            }
++            if(be >= 0x7FFF)
++                exp |= 0x7FFF, mant = 0;
++            else
++                exp |= be, mant = (uint64_t)m;
++        }
+     }
+ 
+     x->mantissa = mant;
+-- 
+2.56.0
+
