@@ -1,0 +1,44 @@
+From f220a8b4cc02d9afa4dd825eac870ac8d1dc4671 Mon Sep 17 00:00:00 2001
+From: Ian Langworth <ian@langworth.com>
+Date: Tue, 27 Oct 2026 20:23:10 -0700
+Subject: [PATCH] wasm: release a held mouseUp after 500 ms
+
+Apps that poll Button() and never fetch the mouseDown event (EV Nova's
+intro story) saw the button held down forever.
+---
+ src/config/front-ends/wasm/wasm.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/config/front-ends/wasm/wasm.cpp b/src/config/front-ends/wasm/wasm.cpp
+index c0a9ca8f..5cf2c74a 100644
+--- a/src/config/front-ends/wasm/wasm.cpp
++++ b/src/config/front-ends/wasm/wasm.cpp
+@@ -71,6 +71,7 @@ void WasmVideoDriver::beepAtUser()
+ // left the event queue, plus a couple of yields for the app to start tracking.
+ static bool upPending;
+ static int upH, upV, upHeldYields;
++static double upSince; // apps that poll Button() never fetch the mouseDown (EV Nova's intro)
+ 
+ static void deliverPendingUp()
+ {
+@@ -85,7 +86,8 @@ void executor_wasm_yield(int ms)
+     if(instance)
+     {
+         EventRecord evt;
+-        if(upPending && !OSEventAvail(mDownMask, &evt) && ++upHeldYields >= 2)
++        if(upPending && ((!OSEventAvail(mDownMask, &evt) && ++upHeldYields >= 2)
++                         || emscripten_get_now() - upSince > 500))
+             deliverPendingUp();
+         instance->present();
+     }
+@@ -109,6 +111,7 @@ EMSCRIPTEN_KEEPALIVE void executor_mouse_button(int down, int h, int v)
+         upPending = true;
+         upH = h;
+         upV = v;
++        upSince = emscripten_get_now();
+         return;
+     }
+     if(upPending) // fast double-click: finish the previous click first
+-- 
+2.56.0
+
