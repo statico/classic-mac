@@ -104,6 +104,30 @@
     display: inline-block; padding: 4px 14px; border: 1px solid var(--frame); border-radius: 4px; color: var(--text); text-decoration: none; font-weight: 600;
     background: linear-gradient(var(--hi), var(--plat)); box-shadow: inset -1px -1px var(--lo);
   }
+
+  /* On-screen Mac keys, for touch screens only. Platinum keycaps; a held
+     modifier takes the selection color, like Easy Access Sticky Keys. */
+  .keys { display: none; }
+  @media (pointer: coarse) {
+    .keys {
+      display: grid; position: relative; gap: 5px; padding: 8px 6px 6px;
+      grid-template-columns: repeat(6, 1fr) 4px repeat(3, 1fr); grid-auto-rows: 42px;
+      border-top: 1px solid var(--lo); touch-action: manipulation;
+    }
+  }
+  .key {
+    display: grid; place-items: center; min-width: 0; padding: 0; margin: 0;
+    font: 600 18px/1 Archivo, Geneva, system-ui, sans-serif; color: var(--text);
+    background: linear-gradient(var(--hi), var(--plat) 70%); border: 1px solid var(--frame); border-radius: 5px;
+    box-shadow: inset -1px -2px var(--lo), 0 1px 0 rgb(0 0 0 / .25);
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .key.word { font-size: 13px; }
+  .key svg { width: 24px; height: 14px; }
+  .key.down { background: var(--plat); box-shadow: inset 1px 2px var(--lo); transform: translateY(1px); }
+  .key[aria-pressed="true"] { background: var(--sel); color: var(--sel-text); box-shadow: inset 1px 2px rgb(0 0 0 / .3); }
+  .key.locked { text-decoration: underline 2px; text-underline-offset: 4px; }
+  .typing { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
   @media (max-width: 520px) {
     main { padding: 16px 16px 32px; }
     .content { padding: 14px; }
@@ -146,6 +170,92 @@ const disk = () => `<svg viewBox="0 0 32 32" shape-rendering="crispEdges" aria-h
 
 const DISCLAIMER = `These applications are the property of their respective owners. They are here for archival and historical purposes only. If you own the rights to one of them and want it removed, <a href="${REPO}/issues">open an issue</a> and we will remove it.`;
 
+// On-screen keys: [KeyboardEvent.code, label, name, row, column, span].
+// Columns 1-6 are the main block, 8-10 the arrows (inverted T).
+const KEYCAPS = [
+  ['Escape', 'esc', 'Escape', 1, 1], ['Tab', 'tab', 'Tab', 1, 2],
+  ['ControlLeft', '⌃', 'Control', 1, 3], ['AltLeft', '⌥', 'Option', 1, 4], ['MetaLeft', '⌘', 'Command', 1, 5],
+  ['type', `<svg viewBox="0 0 12 7" shape-rendering="crispEdges"><path fill="currentColor" d="M0 0h12v7H0zM1 1v5h10V1zM2 2h1v1H2zM4 2h1v1H4zM6 2h1v1H6zM8 2h2v1H8zM2 4h8v1H2z" fill-rule="evenodd"/></svg>`, 'Type with your keyboard', 1, 6],
+  ['ArrowUp', '▲', 'Up', 1, 9],
+  ['ShiftLeft', '⇧', 'Shift', 2, 1], ['Space', '', 'Space', 2, 2, 3], ['Backspace', '⌫', 'Delete', 2, 5], ['Enter', '⏎', 'Return', 2, 6],
+  ['ArrowLeft', '◀', 'Left', 2, 8], ['ArrowDown', '▼', 'Down', 2, 9], ['ArrowRight', '▶', 'Right', 2, 10],
+];
+const MODS = ['ControlLeft', 'AltLeft', 'MetaLeft', 'ShiftLeft'];
+const keysHTML = `<div class="keys" role="group" aria-label="Mac keys">` + KEYCAPS.map(([code, label, name, row, col, span = 1]) =>
+  `<button type="button" class="key${label.length > 1 && !label.startsWith('<') ? ' word' : ''}" data-code="${code}" aria-label="${name}"${MODS.includes(code) || code === 'type' ? ' aria-pressed="false"' : ''} style="grid-area: ${row} / ${col} / span 1 / span ${span}">${label}</button>`).join('') +
+  `<input class="typing" aria-label="Type to the Mac" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="send"></div>`;
+
+// Characters the phone keyboard can type, in US layout order, with their codes.
+const ROW_CODES = 'Backquote Digit1 Digit2 Digit3 Digit4 Digit5 Digit6 Digit7 Digit8 Digit9 Digit0 Minus Equal KeyQ KeyW KeyE KeyR KeyT KeyY KeyU KeyI KeyO KeyP BracketLeft BracketRight Backslash KeyA KeyS KeyD KeyF KeyG KeyH KeyJ KeyK KeyL Semicolon Quote KeyZ KeyX KeyC KeyV KeyB KeyN KeyM Comma Period Slash'.split(' ');
+const CHARS = {};
+[...'`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./'].forEach((c, i) => CHARS[c] = [ROW_CODES[i], false]);
+[...'~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?'].forEach((c, i) => CHARS[c] = [ROW_CODES[i], true]);
+CHARS[' '] = ['Space', false]; CHARS['\n'] = ['Enter', false];
+const NAMED = { Enter: 'Enter', Backspace: 'Backspace', Tab: 'Tab', Escape: 'Escape', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight' };
+
+function wireKeys(root, frame) {
+  const send = (down, code) => frame.contentWindow.macKey && frame.contentWindow.macKey(down, code);
+  const input = root.querySelector('.typing'), typeKey = root.querySelector('[data-code="type"]');
+  const mods = {}; // code -> 'latched' (for the next key) or 'locked' (until tapped again)
+  const show = (code) => {
+    const b = root.querySelector(`[data-code="${code}"]`);
+    b.setAttribute('aria-pressed', String(!!mods[code]));
+    b.classList.toggle('locked', mods[code] === 'locked');
+  };
+  const releaseLatched = () => {
+    for (const c of MODS) if (mods[c] === 'latched') { delete mods[c]; send(false, c); show(c); }
+  };
+  const tap = (code, shift) => {
+    const addShift = shift && !mods.ShiftLeft;
+    if (addShift) send(true, 'ShiftLeft');
+    send(true, code); send(false, code);
+    if (addShift) send(false, 'ShiftLeft');
+    releaseLatched();
+  };
+
+  for (const b of root.querySelectorAll('.key')) {
+    const code = b.dataset.code;
+    // preventDefault keeps focus on the text field, so the phone keyboard stays open.
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (code === 'type') return;
+      if (MODS.includes(code)) {
+        // Tap once: held for the next key. Twice: locked. Three times: off.
+        if (!mods[code]) { mods[code] = 'latched'; send(true, code); }
+        else if (mods[code] === 'latched') mods[code] = 'locked';
+        else { delete mods[code]; send(false, code); }
+        show(code);
+        return;
+      }
+      b.setPointerCapture(e.pointerId);
+      b.classList.add('down');
+      send(true, code); // held while the finger is down, so arrows can walk
+    });
+    if (MODS.includes(code) || code === 'type') continue;
+    const up = () => { if (!b.classList.contains('down')) return; b.classList.remove('down'); send(false, code); releaseLatched(); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  }
+
+  // The phone keyboard types into a hidden text field. iOS sends real keydowns;
+  // Android sends "Unidentified" keydowns, so its text comes from input events.
+  typeKey.addEventListener('click', () => document.activeElement === input ? input.blur() : input.focus());
+  input.addEventListener('focus', () => typeKey.setAttribute('aria-pressed', 'true'));
+  input.addEventListener('blur', () => typeKey.setAttribute('aria-pressed', 'false'));
+  const reset = () => { input.value = ' '; }; // a space, so Backspace has something to delete
+  reset();
+  input.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
+    if (NAMED[e.key]) { tap(NAMED[e.key]); e.preventDefault(); }
+    else if (CHARS[e.key]) { tap(...CHARS[e.key]); e.preventDefault(); }
+  });
+  input.addEventListener('input', (e) => {
+    if (e.inputType === 'deleteContentBackward') tap('Backspace');
+    else for (const c of e.data || '') if (CHARS[c]) tap(...CHARS[c]);
+    reset();
+  });
+}
+
 function home() {
   document.title = 'Classic Mac Games';
   const list = GAMES.map((g, i) => {
@@ -161,7 +271,7 @@ function play(g) {
   const c = credits[g.id] || {};
   document.title = (c.title || g.id) + ' · Classic Mac Games';
   main.innerHTML = `<div class="player">` +
-    win(c.title || g.id, `<iframe class="screen" src="executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>`, { style: `max-width: ${g.w + 12}px`, pad: false }) +
+    win(c.title || g.id, `<iframe class="screen" src="executor/?game=${g.id}" title="${esc(c.title || g.id)}" style="aspect-ratio: ${g.w} / ${g.h + 26}" allow="autoplay; fullscreen"></iframe>${keysHTML}`, { style: `max-width: ${g.w + 12}px`, pad: false }) +
     win(`${c.title || g.id} Info`, `
       <dl>
         <dt>Title</dt><dd>${esc(c.title || g.id)} ${esc(c.version || '')}</dd>
@@ -169,11 +279,13 @@ function play(g) {
         <dt>Publisher</dt><dd>${esc(c.publisher || '')}, ${esc(c.year || '')}</dd>
         <dt>Source</dt><dd><a href="${esc(c.garden_url || '#')}">${esc(c.garden_page_title || 'Macintosh Garden')}</a><br><span class="muted">${esc(c.download_file || '')}</span></dd>
         <dt>Download</dt><dd>About ${g.mb} MB, emulator included</dd>
-        <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard. On a phone you can watch, but not play.' : 'Mouse only. A tap is a click.'}</dd>
+        <dt>Controls</dt><dd>${g.keys ? 'Mouse and keyboard.' : 'Mouse only.'} On a touch screen, a tap is a click and a drag is a drag. Use the keys under the game, or tap the keyboard key to type. Tap ⌘, ⌥, ⇧ or ⌃ once to hold it for the next key, twice to lock it.</dd>
       </dl>
       <p>${esc(c.description || '')}</p>
       <p class="note">${DISCLAIMER}</p>`, { style: `max-width: ${g.w + 12}px` }) + `</div>`;
-  main.querySelector('iframe').focus();
+  const frame = main.querySelector('iframe');
+  wireKeys(main.querySelector('.keys'), frame);
+  frame.focus();
 }
 
 function route() {

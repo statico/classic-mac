@@ -8,7 +8,7 @@
   :root { --bg: #222; --fg: #ddd; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  canvas { image-rendering: pixelated; max-width: 100vw; max-height: calc(100vh - 2em); outline: none; cursor: default; background: #000; }
+  canvas { image-rendering: pixelated; max-width: 100vw; max-height: calc(100vh - 2em); outline: none; cursor: default; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   #status { height: 2em; line-height: 2em; }
 </style>
 </head>
@@ -135,17 +135,34 @@ function macPoint(e) {
   return [Math.round((e.clientX - r.left) * canvas.width / r.width),
           Math.round((e.clientY - r.top) * canvas.height / r.height)];
 }
-canvas.addEventListener('mousemove', (e) => { if (Module._executor_mouse_moved) Module._executor_mouse_moved(...macPoint(e)); });
-canvas.addEventListener('mousedown', (e) => { canvas.focus(); Module._executor_mouse_button(1, ...macPoint(e)); e.preventDefault(); });
-window.addEventListener('mouseup', (e) => { if (Module._executor_mouse_button) Module._executor_mouse_button(0, ...macPoint(e)); });
+// Pointer events cover mouse, pen and touch. touch-action: none (CSS) stops a
+// finger drag from scrolling the page, so it drags in the Mac instead.
+canvas.addEventListener('pointermove', (e) => { if (Module._executor_mouse_moved) Module._executor_mouse_moved(...macPoint(e)); });
+canvas.addEventListener('pointerdown', (e) => {
+  if (!e.isPrimary || !Module._executor_mouse_button) return;
+  canvas.focus();
+  canvas.setPointerCapture(e.pointerId);
+  // A tap has no hover, so move the Mac mouse there before the click.
+  Module._executor_mouse_moved(...macPoint(e));
+  Module._executor_mouse_button(1, ...macPoint(e));
+  e.preventDefault();
+});
+for (const type of ['pointerup', 'pointercancel'])
+  canvas.addEventListener(type, (e) => { if (e.isPrimary && Module._executor_mouse_button) Module._executor_mouse_button(0, ...macPoint(e)); });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+// Sends one key to the Mac. code is a KeyboardEvent.code. The site's
+// on-screen keys call this too (same origin). Returns false for unknown keys.
+window.macKey = (down, code) => {
+  const k = KEYS[(game.keys && game.keys[code]) || code];
+  if (k === undefined || !Module._executor_key) return false;
+  if (down) startAudio();
+  Module._executor_key(down ? 1 : 0, k);
+  return true;
+};
 for (const type of ['keydown', 'keyup']) {
   canvas.addEventListener(type, (e) => {
-    const k = KEYS[(game.keys && game.keys[e.code]) || e.code];
-    if (k === undefined || !Module._executor_key) return;
-    if (type === 'keydown' && e.repeat) { e.preventDefault(); return; }
-    Module._executor_key(type === 'keydown' ? 1 : 0, k);
-    e.preventDefault();
+    if (type === 'keydown' && e.repeat) { if (KEYS[e.code] !== undefined) e.preventDefault(); return; }
+    if (macKey(type === 'keydown', e.code)) e.preventDefault();
   });
 }
 
