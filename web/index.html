@@ -138,7 +138,7 @@ function home() {
   }).join('');
   main.innerHTML =
     win('Classic Mac Games', `<p class="lede">${GAMES.length} classic Macintosh games that run in your browser. No Mac ROM, no system software: <a href="https://github.com/autc04/executor">Executor</a> rebuilds the Mac Toolbox and runs here as WebAssembly.</p><ul class="icons">${list}</ul>`, { tag: 'h1' }) +
-    win('About This Site', `<p><a class="button" href="${REPO}#readme">How it works</a> <a class="button" href="${REPO}">Source code</a></p><p>All the games come from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors and links to its Garden page.</p><p class="note">${DISCLAIMER}</p>`, { style: 'max-width: 600px' });
+    win('About This Site', `<p><a class="button" href="${REPO}#how-it-works">How it works</a> <a class="button" href="${REPO}">Source code</a></p><p>All the games come from the <a href="https://macintoshgarden.org/">Macintosh Garden</a>, which keeps abandoned Mac software available. Each game page names its authors and links to its Garden page.</p><p class="note">${DISCLAIMER}</p>`, { style: 'max-width: 600px' });
 }
 
 function play(g) {
@@ -172,7 +172,7 @@ fetch('credits.json').then((r) => r.json()).catch(() => ({})).then((c) => {
   credits = c;
   menubar.insertAdjacentHTML('beforeend',
     GAMES.map((g, i) => `<a href="#${g.id}" data-id="${g.id}"><span class="swatch" style="--c:${color(g.id, i)}"></span>${esc((c[g.id] || {}).title || g.id)}</a>`).join('') +
-    `<span class="spacer"></span><a href="${REPO}#readme">How it works</a>`);
+    `<span class="spacer"></span><a href="${REPO}#how-it-works">How it works</a>`);
   addEventListener('hashchange', route);
   route();
 });
