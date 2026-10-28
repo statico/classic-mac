@@ -19,7 +19,9 @@
 // Games are emscripten file_packager bundles (games/<id>.js + .data), mounted at /games/<id>.
 // See scripts/package-executor-game.sh and docs/executor-file-formats.md.
 const GAMES = {
-  'scarab-of-ra': { app: 'Scarab of RA 1.4/Scarab of RA 1.4', args: [] },
+  // Scarab moves with the numeric keypad; send the arrow keys there too.
+  'scarab-of-ra': { app: 'Scarab of RA 1.4/Scarab of RA 1.4', args: [],
+                    keys: { ArrowUp: 'Numpad8', ArrowLeft: 'Numpad4', ArrowRight: 'Numpad6', ArrowDown: 'Numpad2' } },
   'simcity-2000': { app: 'SimCity 2000/SimCity2000™ 1.1', args: ['--applzone', '16M', '--bpp', '8'] },
   'dark-castle':  { app: 'Dark Castle/Dark Castle', args: ['--bpp', '1'] },
   'oregon-trail': { app: 'Oregon Trail/Oregon Trail', args: [] },
@@ -84,7 +86,7 @@ window.addEventListener('mouseup', (e) => { if (Module._executor_mouse_button) M
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 for (const type of ['keydown', 'keyup']) {
   canvas.addEventListener(type, (e) => {
-    const k = KEYS[e.code];
+    const k = KEYS[(game.keys && game.keys[e.code]) || e.code];
     if (k === undefined || !Module._executor_key) return;
     if (type === 'keydown' && e.repeat) { e.preventDefault(); return; }
     Module._executor_key(type === 'keydown' ? 1 : 0, k);
