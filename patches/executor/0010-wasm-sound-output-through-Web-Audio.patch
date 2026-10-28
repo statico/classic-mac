@@ -1,0 +1,375 @@
+From 739159fa2f32591728accc3c138a22664096f24a Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Tue, 27 Oct 2026 21:39:45 -0700
+Subject: [PATCH] wasm: sound output through Web Audio
+
+- WasmSound: the fake driver's paced Sound Manager mix goes to the page.
+- The old Sound Driver (refNum -4): free-form writes play through a
+  private Sound Manager channel; Control calls succeed; KillIO stops it.
+- Programs that write samples straight into the buffer at SoundBase
+  (Dark Castle, Glider 4) are sampled once per VBL.
+- Fix the inverted --nosound switch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/config/front-ends/wasm/wasm.cpp |  47 +++++++++++
+ src/device.cpp                      |  14 ++++
+ src/hfs/hfsXbar.cpp                 |  16 ++--
+ src/main.cpp                        |   2 +-
+ src/sound/sound.cpp                 | 117 +++++++++++++++++++++++++++-
+ src/sound/sounddriver.h             |   3 +
+ src/sound/soundopts.h               |   5 ++
+ src/time/vbl.cpp                    |   4 +
+ 8 files changed, 195 insertions(+), 13 deletions(-)
+
+diff --git a/src/config/front-ends/wasm/wasm.cpp b/src/config/front-ends/wasm/wasm.cpp
+index 5cf2c74a..44ba6047 100644
+--- a/src/config/front-ends/wasm/wasm.cpp
++++ b/src/config/front-ends/wasm/wasm.cpp
+@@ -4,15 +4,62 @@
+ #include <OSEvent.h>
+ #include <syn68k_public.h>
+ #include <cstdio>
++#include <cstring>
++#include <sound/soundfake.h>
++#include <sound/soundopts.h>
+ 
+ using namespace Executor;
+ 
+ static WasmVideoDriver *instance;
+ 
++// The fake driver already paces the Sound Manager with Time Manager tasks
++// (one 2048-sample buffer every ~92 ms).  We keep that pacing and hand each
++// mixed buffer to the page, which plays it with Web Audio.
++class WasmSound : public SoundFake
++{
++public:
++    HungerInfo HungerStart() override
++    {
++        HungerInfo info = SoundFake::HungerStart();
++        mixing_ = true;
++        memset(info.buf, 0x80, info.bufsize); // channels mix into silence
++        buf_ = info.buf;
++        size_ = info.bufsize;
++        rate_ = info.rate;
++        return info;
++    }
++    void HungerFinish() override
++    {
++        mixing_ = false;
++        EM_ASM({ if(Module.executorAudio) Module.executorAudio($0, $1, $2, 0); }, buf_, size_, rate_);
++        SoundFake::HungerFinish();
++    }
++    bool sound_silent() override { return false; }
++    void hardware_frame(const uint8_t *samples, int n, int rate) override
++    {
++        EM_ASM({ if(Module.executorAudio) Module.executorAudio($0, $1, $2, 1); }, samples, n, rate);
++    }
++    // SoundFake::sound_go mixes right away.  A callBackCmd that runs during
++    // the mix and queues more sound (Glider PRO) would recurse without end.
++    void sound_go() override
++    {
++        if(!mixing_)
++            SoundFake::sound_go();
++    }
++
++private:
++    bool mixing_ = false;
++    uint8_t *buf_;
++    int size_, rate_;
++};
++
+ WasmVideoDriver::WasmVideoDriver(IEventListener *listener, int&, char*[])
+     : VideoDriver(listener)
+ {
+     instance = this;
++    sound_driver = new WasmSound();
++    if(!sound_disabled_p)
++        ROMlib_PretendSound = soundon;
+ }
+ 
+ bool WasmVideoDriver::setMode(int width, int height, int bpp, bool grayscale_p)
+diff --git a/src/device.cpp b/src/device.cpp
+index d0c842da..e47f5d28 100644
+--- a/src/device.cpp
++++ b/src/device.cpp
+@@ -18,6 +18,7 @@
+ #include <rsys/serial.h>
+ #include <rsys/mactcp.h>
+ #include <base/cpu.h>
++#include <sound/soundopts.h>
+ #include <base/functions.impl.h>
+ 
+ using namespace Executor;
+@@ -174,6 +175,13 @@ OSErr Executor::PBControl(ParmBlkPtr pbp, Boolean a) /* IMII-186 */
+ {
+     OSErr err;
+ 
++    /* The Sound Driver has no unit-table entry; games such as Glider 4
++       treat a failed Control call as "no sound". */
++    if(pbp->cntrlParam.ioCRefNum == -4)
++    {
++        pbp->cntrlParam.ioResult = noErr;
++        return noErr;
++    }
+     err = ROMlib_dispatch(pbp, a, Ctl, 0);
+     fs_err_hook(err);
+     return err;
+@@ -193,6 +201,12 @@ OSErr Executor::PBKillIO(ParmBlkPtr pbp, Boolean a) /* IMII-187 */
+     OSErr err;
+ 
+     pbp->cntrlParam.csCode = killCode;
++    if(pbp->cntrlParam.ioCRefNum == -4) /* StopSound */
++    {
++        ROMlib_sound_driver_kill();
++        pbp->cntrlParam.ioResult = noErr;
++        return noErr;
++    }
+     err = ROMlib_dispatch(pbp, a, Ctl, 0);
+     fs_err_hook(err);
+     return err;
+diff --git a/src/hfs/hfsXbar.cpp b/src/hfs/hfsXbar.cpp
+index 41ea95f0..80a17a19 100644
+--- a/src/hfs/hfsXbar.cpp
++++ b/src/hfs/hfsXbar.cpp
+@@ -13,6 +13,7 @@
+ #include <prefs/prefs.h>
+ #include <base/cpu.h>
+ #include <file/volume.h>
++#include <sound/soundopts.h>
+ 
+ using namespace Executor;
+ 
+@@ -397,16 +398,11 @@ OSErr Executor::PBWrite(ParmBlkPtr pb, Boolean async)
+             retval = pb->ioParam.ioResult;
+             break;
+ 
+-#if 0
+-    case SOUND_DRIVER_REF:
+-	p = (char *) pb->ioParam.ioBuffer;
+-	if (*(short *)p == ffMode) {
+-	    n = pb->ioParam.ioReqCount;
+-	    ROMlib_dosound(p + 4, n - 4, (void (*)(void)) 0);
+-	}
+-	retval = noErr;
+-	break;
+-#endif
++        case SOUND_DRIVER_REF:
++            retval = ROMlib_sound_driver_write(pb, async);
++            if(retval == 1)
++                return noErr; /* still playing; sound.cpp completes it */
++            break;
+         default:
+             if(Volume *v = getFileVolume(pb))
+                 retval = handleExceptions(*v, &Volume::PBWrite, pb);
+diff --git a/src/main.cpp b/src/main.cpp
+index a4816f56..fce6f86b 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -301,7 +301,7 @@ static std::vector<std::string> parseCommandLine(int& argc, char **argv)
+ 
+     po::options_description sound("Sound");
+     sound.add_options()
+-        ("nosound", pox::inverted_bool_switch(&sound_disabled_p), "disabe sound output")
++        ("nosound", po::bool_switch(&sound_disabled_p), "disable sound output")
+         ;
+     desc.add(sound);
+ 
+diff --git a/src/sound/sound.cpp b/src/sound/sound.cpp
+index 16af0d30..5728c8fd 100644
+--- a/src/sound/sound.cpp
++++ b/src/sound/sound.cpp
+@@ -14,6 +14,7 @@
+ #include <mman/mman.h>
+ #include <base/functions.impl.h>
+ #include <time/syncint.h>
++#include <file/file.h>
+ 
+ using namespace Executor;
+ 
+@@ -548,6 +549,116 @@ snd_duration(SoundHeaderPtr hp)
+ 
+ #define CMD_DONE(c) ((c)->flags &= ~CHAN_CMDINPROG_FLAG)
+ 
++/* The old Sound Driver (refNum -4, IM II-221).  Free-form writes play
++ * through a private Sound Manager channel; the callBackCmd queued after
++ * the buffer completes the write.  Square-wave and four-tone writes
++ * still complete at once without sound. */
++static SndChannelPtr sd_chan;
++static ParmBlkPtr sd_pb;
++static SoundHeaderPtr sd_hdr;
++
++static void sound_driver_done(OSErr err)
++{
++    ParmBlkPtr pb = sd_pb;
++    if(!pb)
++        return;
++    sd_pb = nullptr;
++    pb->ioParam.ioResult = err;
++    pb->ioParam.ioActCount = pb->ioParam.ioReqCount;
++    if(ProcPtr compp = pb->ioParam.ioCompletion)
++        CALLCOMPLETION(pb, compp, err);
++}
++
++static void sound_driver_stop()
++{
++    SndCommand cmd;
++    cmd.param1 = 0;
++    cmd.param2 = 0;
++    cmd.cmd = flushCmd;
++    SndDoImmediate(sd_chan, &cmd);
++    cmd.cmd = quietCmd;
++    SndDoImmediate(sd_chan, &cmd);
++    if(sd_pb)
++    {
++        sd_pb->ioParam.ioResult = abortErr;
++        sd_pb = nullptr;
++    }
++}
++
++/* Returns 1 when the write is still playing. */
++OSErr Executor::ROMlib_sound_driver_write(ParmBlkPtr pb, bool async)
++{
++    Ptr buf = pb->ioParam.ioBuffer;
++    LONGINT n = pb->ioParam.ioReqCount;
++
++    if(ROMlib_PretendSound != soundon || n <= 6
++       || *(GUEST<INTEGER> *)buf != 0 /* ffMode */)
++        return noErr;
++
++    if(!sd_chan)
++    {
++        GUEST<SndChannelPtr> chan = nullptr;
++        SndNewChannel(&chan, sampledSynth, 0, nullptr);
++        sd_chan = chan;
++        sd_hdr = (SoundHeaderPtr)NewPtrSysClear(sizeof(SoundHeader));
++    }
++    sound_driver_stop();
++
++    /* FFSynthRec: mode, count (Fixed, 1.0 = 22254.54 Hz), waveBytes */
++    sd_hdr->samplePtr = buf + 6;
++    sd_hdr->length = n - 6;
++    sd_hdr->sampleRate = (Fixed)(((uint64_t)(uint32_t)*(GUEST<Fixed> *)(buf + 2) * 0x56EE8BA3ULL) >> 16);
++    sd_hdr->encode = stdSH;
++    sd_hdr->baseFrequency = 60;
++
++    sd_pb = pb;
++    pb->ioParam.ioResult = 1;
++
++    SndCommand cmd;
++    cmd.cmd = bufferCmd;
++    cmd.param1 = 0;
++    cmd.param2 = guest_cast<LONGINT>(sd_hdr);
++    SndDoCommand(sd_chan, &cmd, false);
++    cmd.cmd = callBackCmd;
++    cmd.param2 = 0;
++    SndDoCommand(sd_chan, &cmd, false);
++
++    if(!async)
++    {
++        wait_on_channel(sd_chan);
++        return pb->ioParam.ioResult;
++    }
++    return 1;
++}
++
++/* Some early games (Dark Castle) skip the Sound Driver and write samples
++ * into the 370-word buffer at SoundBase from a VBL task, one sample in the
++ * high byte of each word.  Called once per VBL with the ticks elapsed. */
++void Executor::ROMlib_sound_hardware_frames(int ticks)
++{
++    if(ROMlib_PretendSound != soundon || ticks <= 0 || !LM(SoundBase))
++        return;
++
++    GUEST<uint16_t> *p = (GUEST<uint16_t> *)(Ptr)LM(SoundBase);
++    uint8_t buf[370];
++    bool flat = true;
++    for(int i = 0; i < 370; i++)
++    {
++        buf[i] = p[i] >> 8;
++        flat = flat && buf[i] == buf[0];
++    }
++    if(flat)
++        return;
++    for(int i = 0; i < ticks && i < 4; i++)
++        sound_driver->hardware_frame(buf, 370, 370 * 60);
++}
++
++void Executor::ROMlib_sound_driver_kill()
++{
++    if(sd_chan)
++        sound_driver_stop();
++}
++
+ static void
+ do_current_command(SndChannelPtr chanp, HungerInfo info)
+ {
+@@ -597,9 +708,11 @@ do_current_command(SndChannelPtr chanp, HungerInfo info)
+         case callBackCmd:
+             warning_sound_log("callBackCmd");
+             cmd = chanp->cmdInProg;
+-            chanp->callBack
+-            (chanp, &cmd);
+             CMD_DONE(chanp);
++            if(chanp == sd_chan)
++                sound_driver_done(noErr);
++            else
++                chanp->callBack(chanp, &cmd);
+             break;
+ 
+         case ampCmd:
+diff --git a/src/sound/sounddriver.h b/src/sound/sounddriver.h
+index b5825bf5..75d0fc10 100644
+--- a/src/sound/sounddriver.h
++++ b/src/sound/sounddriver.h
+@@ -29,6 +29,9 @@ public:
+     virtual HungerInfo HungerStart() = 0;
+     virtual void HungerFinish() = 0;
+     virtual void sound_clear_pending() {};
++    /* One VBL frame of samples a program wrote straight into the sound
++       buffer at SoundBase (Mac Plus hardware). */
++    virtual void hardware_frame(const uint8_t *samples, int n, int rate) {}
+ 
+     virtual ~SoundDriver();
+ };
+diff --git a/src/sound/soundopts.h b/src/sound/soundopts.h
+index ed5e5982..a143590f 100644
+--- a/src/sound/soundopts.h
++++ b/src/sound/soundopts.h
+@@ -2,6 +2,7 @@
+ #define __RSYS_SOUNDOPTS__
+ 
+ #include <SoundMgr.h>
++#include <FileMgr.h>
+ /* to get extern for `ROMlib_PretendSound' */
+ #include <prefs/prefs.h>
+ 
+@@ -31,6 +32,10 @@ extern void ROMlib_soundcomplete(void *chanp);
+ 
+ extern void clear_pending_sounds(void);
+ 
++extern OSErr ROMlib_sound_driver_write(ParmBlkPtr pb, bool async);
++extern void ROMlib_sound_driver_kill();
++extern void ROMlib_sound_hardware_frames(int ticks);
++
+ /* patl stuff */
+ 
+ extern GUEST<SndChannelPtr> allchans;
+diff --git a/src/time/vbl.cpp b/src/time/vbl.cpp
+index c5e89c76..0542abc8 100644
+--- a/src/time/vbl.cpp
++++ b/src/time/vbl.cpp
+@@ -89,6 +89,10 @@ static void C_ROMlib_vcatch()
+ 
+     PrimeTime((QElemPtr)&vbltm, msecs_to_next_tick);
+ 
++    /* The buffer at SoundBase played during the ticks that just passed;
++       grab it before the VBL tasks below refill it. */
++    ROMlib_sound_hardware_frames(ticks_elapsed);
++
+     for(vp = (VBLTaskPtr)LM(VBLQueue).qHead; vp; vp = next)
+     {
+         INTEGER old_vbl_count, new_vbl_count;
+-- 
+2.56.0
+
