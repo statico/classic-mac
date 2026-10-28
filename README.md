@@ -57,6 +57,7 @@ Bundles larger than 50 MB (EV Nova) are split into 45 MB parts, because GitHub a
 - **Executor:** ARDI (Abacus Research and Development, Inc.), Cliff Matthews, Mat Hostetter (syn68k), Cotton Seed, Bill Goldman, Patrick LoPresti, Joel Hunter, Sam Lantinga, Lauri Pesonen and Samuel Vincent. Cliff Matthews released Executor as open source in 2008 ([ctm/executor](https://github.com/ctm/executor)). Wolfgang Thaller modernized it as [Executor 2000](https://github.com/autc04/executor). MIT license.
 - **[Emscripten](https://emscripten.org/)**, which compiles C++ to WebAssembly.
 - **[Macintosh Garden](https://macintoshgarden.org/)**, the source of all the game archives.
+- **Apple:** the floppy disk icon on the site is from Mac OS 8.1, by Apple. [`scripts/floppy-icon.py`](scripts/floppy-icon.py) takes it from the System file.
 - **Claude Code** wrote the port, the patches and this site.
 
 ## Legal
