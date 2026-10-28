@@ -8,3 +8,5 @@ web/dbg/
 games/prepared/ev-nova/
 web/executor/games/ev-nova.data
 .vercel
+.work/
+web/dbg-games/
