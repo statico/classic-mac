@@ -1,0 +1,29 @@
+From 949af60b87c30e61eeb74d130de33603379f1a8c Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Tue, 27 Oct 2026 21:36:29 -0700
+Subject: [PATCH] qPicstuff: region, polygon and data lengths in pictures are
+ unsigned
+
+Oregon Trail CD draws a picture with a 54,964-byte region. The signed
+16-bit length became negative, NewHandle asked for 0x7FFFFFFF bytes and
+the app's grow-zone proc reported that it had run out of memory.
+---
+ src/quickdraw/qPicstuff.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/quickdraw/qPicstuff.cpp b/src/quickdraw/qPicstuff.cpp
+index a8233225..ff67fa5d 100644
+--- a/src/quickdraw/qPicstuff.cpp
++++ b/src/quickdraw/qPicstuff.cpp
+@@ -1593,7 +1593,7 @@ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+     INTEGER ovh, ovw;
+     Pattern ourpattern;
+     Str255 ourstring;
+-    INTEGER hsize;
++    uint16_t hsize; /* region, polygon and data lengths can exceed 32K */
+     void (*f)();
+     INTEGER vers;
+     Fixed scaleh, scalev, tempf;
+-- 
+2.56.0
+

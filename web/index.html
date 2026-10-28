@@ -109,14 +109,14 @@ const REPO = 'https://github.com/statico/classic-mac';
 const GAMES = [
   { id: 'scarab-of-ra', w: 640, h: 480, keys: true, mb: 13 },
   { id: 'dark-castle', w: 640, h: 480, keys: true, mb: 14 },
-  { id: 'oregon-trail', w: 640, h: 480, keys: false, mb: 14 },
+  { id: 'oregon-trail-cd', w: 640, h: 480, keys: false, mb: 115 },
   { id: 'shufflepuck-cafe', w: 640, h: 480, keys: false, mb: 14 },
   { id: 'simcity-2000', w: 640, h: 480, keys: false, mb: 17 },
-  { id: 'glider-pro', w: 640, h: 480, keys: true, mb: 19 },
+  { id: 'glider-4', w: 640, h: 480, keys: true, mb: 14 },
   { id: 'ev-nova', w: 800, h: 600, keys: true, mb: 185 },
 ];
 // One color per game, taken from its box art. Unknown ids get a fallback.
-const COLORS = { 'scarab-of-ra': '#d39b22', 'dark-castle': '#6b3fa0', 'oregon-trail': '#2f8a4f', 'shufflepuck-cafe': '#d23c77', 'simcity-2000': '#2f63b8', 'glider-pro': '#3c9ad6', 'ev-nova': '#e0782a' };
+const COLORS = { 'scarab-of-ra': '#d39b22', 'dark-castle': '#6b3fa0', 'oregon-trail-cd': '#2f8a4f', 'shufflepuck-cafe': '#d23c77', 'simcity-2000': '#2f63b8', 'glider-4': '#3c9ad6', 'ev-nova': '#e0782a' };
 const color = (id, i) => COLORS[id] || ['#c0504d', '#4f81bd', '#9bbb59', '#8064a2'][i % 4];
 const main = document.getElementById('main');
 const menubar = document.getElementById('menubar');

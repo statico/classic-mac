@@ -24,10 +24,11 @@ const GAMES = {
                     keys: { ArrowUp: 'Numpad8', ArrowLeft: 'Numpad4', ArrowRight: 'Numpad6', ArrowDown: 'Numpad2' } },
   'simcity-2000': { app: 'SimCity 2000/SimCity2000™ 1.1', args: ['--applzone', '16M', '--bpp', '8'] },
   'dark-castle':  { app: 'Dark Castle/Dark Castle', args: ['--bpp', '1'] },
-  'oregon-trail': { app: 'Oregon Trail/Oregon Trail', args: [] },
+  'oregon-trail-cd': { app: 'Oregon Trail/Oregon Trail CD', parts: ['aa', 'ab', 'ac'], args: ['--bpp', '8'] },
   'shufflepuck-cafe': { app: 'Shufflepuck Cafe/Shufflepuck Cafe', args: ['--bpp', '1'] },
   'ev-nova': { app: 'EV Nova/EV Nova', parts: ['aa', 'ab', 'ac', 'ad'], args: ['--system', '8.1', '--applzone', '80M', '--bpp', '16', '--size', '800x600'] },
-  'glider-pro': { app: 'Glider PRO/Glider PRO™', args: ['--applzone', '16M', '--bpp', '8'] },
+  // Glider 4 wants a 1-bit or 16-color screen.
+  'glider-4': { app: 'Glider 4/Glider 4.06', args: ['--bpp', '4'] },
 };
 const params = new URLSearchParams(location.search);
 const gameId = params.get('game') || 'scarab-of-ra';

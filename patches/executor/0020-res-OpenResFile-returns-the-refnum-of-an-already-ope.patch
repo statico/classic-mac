@@ -1,0 +1,33 @@
+From 9727d7002eee254c7fd8d7a42f3402cab28f5dea Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Tue, 27 Oct 2026 21:05:46 -0700
+Subject: [PATCH] res: OpenResFile returns the refnum of an already-open file
+ with fsCurPerm
+
+Inside Macintosh I-115: if the resource file is already open,
+OpenResFile returns its reference number. Executor only did this for
+write permissions, so fsCurPerm (OpenResFile's default) opened the file
+a second time and failed. Glider 4 opens "Color Art" twice.
+---
+ src/res/resOpen.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/res/resOpen.cpp b/src/res/resOpen.cpp
+index 805d197b..58c98cc3 100644
+--- a/src/res/resOpen.cpp
++++ b/src/res/resOpen.cpp
+@@ -533,8 +533,10 @@ INTEGER Executor::C_HOpenResFile(INTEGER vref, LONGINT dirid, ConstStringPtr fn,
+         cpb.hFileInfo.ioVRefNum = vref;
+         cpb.hFileInfo.ioFDirIndex = 0;
+         cpb.hFileInfo.ioDirID = dirid;
++        /* IMI-115: opening an already-open resource file returns its
++           refnum. fsCurPerm counts too (Glider 4 opens "Color Art" twice). */
+         if((ROMlib_setreserr(PBGetCatInfo(&cpb, 0))) == noErr
+-           && perm > fsRdPerm)
++           && perm != fsRdPerm)
+         {
+             INTEGER fref;
+ 
+-- 
+2.56.0
+

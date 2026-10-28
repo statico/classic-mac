@@ -12,10 +12,10 @@ There is no Apple ROM and no Mac system software. The emulator is [Executor](htt
 |---|---|---|---|---|---|
 | Scarab of Ra | 1.4 | 1987 | Rick Holzgrafe | Semicolon Software | [Macintosh Garden](https://macintoshgarden.org/games/scarab-of-ra) |
 | Dark Castle | 1.1 | 1986 | Jonathan Gay (programming), Mark Stephen Pierce (design and art) | Silicon Beach Software | [Macintosh Garden](https://macintoshgarden.org/games/dark-castle) |
-| The Oregon Trail | 1.0 | 1992 | MECC. The original 1971 game is by Don Rawitsch, Bill Heinemann and Paul Dillenberger. | MECC | [Macintosh Garden](https://macintoshgarden.org/games/the-oregon-trail) |
+| The Oregon Trail CD | 1.2 | 1993 | MECC: Craig Copley and Wayne Studer (producers), Joan Clarke, Tom Naughton, Brian Nesse and Steve Splinter (programming), Dave Denninger, Charolyn Kapplinger and Mike Tschimperle (art), Larry Phenow (music and sound). The original 1971 game is by Don Rawitsch, Bill Heinemann and Paul Dillenberger. | MECC | [Macintosh Garden](https://macintoshgarden.org/games/the-oregon-trail-cd) |
 | Shufflepuck Café | 14C (pre-release) | 1988 | Christopher Gross | Brøderbund | [Macintosh Garden](https://macintoshgarden.org/games/shufflepuck-cafe) |
 | SimCity 2000 | 1.1 | 1993 | Will Wright, Fred Haslam and Maxis | Maxis | [Macintosh Garden](https://macintoshgarden.org/games/simcity-2000-v10-11) |
-| Glider PRO | 1.1.2 | 1994 | John Calhoun | Casady & Greene | [Macintosh Garden](https://macintoshgarden.org/games/glider-pro) |
+| Glider 4 | 4.06 | 1991 | John Calhoun | Casady & Greene | [Macintosh Garden](https://macintoshgarden.org/games/glider-40) |
 | EV Nova | 1.0.2 | 2002 | Matt Burch and ATMOS | Ambrosia Software | [Macintosh Garden](https://macintoshgarden.org/games/escape-velocity-nova) |
 
 Thank you to these authors for their work. Thank you also to the [Macintosh Garden](https://macintoshgarden.org/), which keeps abandoned Mac software available. [`web/credits.json`](web/credits.json) has the full credits, the copyright text from each game, and the archive checksums.
@@ -32,7 +32,8 @@ Thank you to these authors for their work. Thank you also to the [Macintosh Gard
 Some fixes that the games needed:
 
 - **SimCity 2000 and others:** a short browser click can end before the game reads the mouse. The front end holds the mouse-up until the game has read the mouse-down, for a maximum of 500 ms.
-- **Oregon Trail:** the game locks a range of its settings file and tries again forever if the lock fails. Local folders now accept range locks. SANE extended-precision floats also did not convert correctly on WebAssembly.
+- **Oregon Trail CD:** one of its pictures has a region larger than 32 KB. Executor read the region length as a signed number, asked for a negative amount of memory, and the game reported that it had run out of memory. Executor now reads the length as unsigned.
+- **Files and math:** local folders accept range locks, and SANE extended-precision floats convert correctly on WebAssembly. The floppy version of Oregon Trail needed both.
 - **Dark Castle:** the game stores flags in the high byte of pointers (24-bit addressing).
 - **EV Nova:** it needed a small Display Manager, screen gamma calls, `GetProcessInformation`, `ParseSndHeader`, clipping for GWorlds larger than the screen, and a decoder for QuickTime "Animation" pictures.
 - **Sound:** a small sound driver sends the Sound Manager mix, the old Sound Driver and the Mac Plus sound buffer at `SoundBase` to Web Audio. Browsers start sound only after a user action, so sound starts at the first click or key press in the game.
@@ -50,7 +51,7 @@ cd web && python3 -m http.server 8642
 
 Then open <http://localhost:8642/>. [`games/README.md`](games/README.md) gives the steps for each game.
 
-Bundles larger than 50 MB (EV Nova) are split into 45 MB parts, because GitHub and Vercel do not accept files larger than 100 MB. The page joins the parts again before it starts the game.
+Bundles larger than 50 MB (EV Nova and The Oregon Trail CD) are split into 45 MB parts, because GitHub and Vercel do not accept files larger than 100 MB. The page joins the parts again before it starts the game.
 
 ## Credits
 

@@ -69,28 +69,26 @@
     "description": "SimCity 2000 is the sequel to the enormously popular city simulator by Will Wright, SimCity. Besides adding new features and complexity, SimCity 2000 introduces a brand-new isometric perspective, giving it a 3D-like look and feel.",
     "notes": "copyright[0] is the in-game credits (TEXT 128). Line breaks in it are shown as spaces. The credits start: \"Fred Haslam & Will Wright spent altogether too much of their lives thinking about SimCity 2000™\". copyright[1] is a DATA 0 resource string. copyright[2] and copyright[3] are the \"Legal Stuff\" section of 'SimCity 2000™ 1.1 Read Me', which is in the hosted files. copyright[3] says that the game may not be freely distributed. The 'vers' resource has no copyright text (\"SimCity2000™ v1.1\", \"The Ultimate City Simulator\"). The page shows no uploader credit."
   },
-  "oregon-trail": {
-    "title": "The Oregon Trail",
-    "garden_url": "https://macintoshgarden.org/games/the-oregon-trail",
-    "garden_page_title": "The Oregon Trail  - Macintosh Garden",
+  "oregon-trail-cd": {
+    "title": "The Oregon Trail CD",
+    "garden_url": "https://macintoshgarden.org/games/the-oregon-trail-cd",
+    "garden_page_title": "The Oregon Trail CD - Macintosh Garden",
     "authors": [
       "MECC"
     ],
     "publisher": "MECC",
-    "year": "1992",
-    "version": "1.0",
+    "year": "1993",
+    "version": "1.2",
     "copyright": [
-      "1.0, Copyright MECC 1991",
-      "Version 1.0, Copyright MECC 1991",
-      "Copyright 1991, MECC",
+      "1.2, Copyright © 1993, MECC",
       "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
     ],
-    "download_file": "OregonTrail.sit",
-    "download_md5": "cc362be4b71ca399424863f2ed4b70cf",
-    "download_label": "Download 1 (2025-04-19): version 1.0 in a Stuffit Archive, featuring a beige color.",
+    "download_file": "OregonTrail1.2.sit_.bin",
+    "download_md5": "28a8aae1c5a454ea070896ed1cef3c3c",
+    "download_label": "DL #1 (2009-12-10): OregonTrail1.2.sit_.bin (45.79 MB), an image of the Mac CD",
     "uploaded_by": "",
-    "description": "The Oregon Trail is an educational computer game developed by Don Rawitsch, Bill Heinemann, and Paul Dillenberger in 1971 and produced by MECC beginning in 1975. The game was inspired by the real-life Oregon Trail and was designed to teach school children about the realities of 19th century pioneer life on the trail. The player assumes the role of a wagon leader guiding a party of settlers from Independence, Missouri, to Oregon's Willamette Valley in 1848.",
-    "notes": "copyright[0] is the 'vers' 1 resource. copyright[1] is the ORGN 0 resource. copyright[2] is the About box (DITL 2001, which also says \"Brought to you by:\"). The page gives the year as 1992, but the game says 1991. The page shows no uploader for Download 1. The other agent fetched OregonTrail.sit and oregontrail_1_2.zip. The hosted files (Oregon Config, Oregon Trail, Trail Log, 'vers' 1.0) match OregonTrail.sit. The other agent must confirm this choice."
+    "description": "The CD-ROM edition of The Oregon Trail, with digitized photos, spoken guide books and music. Lead a wagon party from Independence, Missouri, to Oregon's Willamette Valley in 1848. The original 1971 game is by Don Rawitsch, Bill Heinemann and Paul Dillenberger. Produced by Craig Copley and Wayne Studer. Programmed by Joan Clarke, Tom Naughton, Brian Nesse and Steve Splinter. Art by Dave Denninger, Charolyn Kapplinger and Mike Tschimperle. Music and sound by Larry Phenow.",
+    "notes": "copyright[0] is the 'vers' 1 resource. The authors come from the credits screen (TEXT 200), which also names the testers, the voice actors, the singers, the choir and the team of Oregon Trail 1.0 for Macintosh. The Garden lists the publisher as The Learning Company, which bought MECC later; the CD says MECC. We copy the app and 'Oregon Data' off the raw HFS image and leave out the HyperCard user's guide."
   },
   "shufflepuck-cafe": {
     "title": "Shufflepuck Café",
@@ -114,25 +112,26 @@
     "description_credit": "Quoted on the Macintosh Garden page from: Putney, Dean \"Nostalgia: Shufflepuck Café\", Cult of Mac (http://cultofmac.com/nostalgia-shufflepuck-cafe/6399)",
     "notes": "The hosted application matches 'Shufflepuck Cafe (cheats).dsk' in SPuck.zip byte for byte. It does not match the 1.0 disk or the 'nude' disk. The page calls this build \"Version 14C: A near-final pre-release build, with a cheat menu and zero copy protection\", and says that its \"about box, and title screen copyright\" differ from 1.0. The application has no 'vers' resource and no copyright text in its string resources. The copyright is drawn in PICT images, which we could not render, so it is not recorded here. Read it from the About box or title screen in the running game. The page shows no uploader credit. The other agent must confirm the download file and version."
   },
-  "glider-pro": {
-    "title": "Glider PRO",
-    "garden_url": "https://macintoshgarden.org/games/glider-pro",
-    "garden_page_title": "Glider PRO - Macintosh Garden",
+  "glider-4": {
+    "title": "Glider 4",
+    "garden_url": "https://macintoshgarden.org/games/glider-40",
+    "garden_page_title": "Glider 4.0 - Macintosh Garden",
     "authors": [
       "John Calhoun"
     ],
     "publisher": "Casady & Greene",
-    "year": "1994",
-    "version": "1.1.2",
+    "year": "1991",
+    "version": "4.06",
     "copyright": [
+      "Glider 4.06™ ©1991 Casady & Greene, Inc.",
       "Disclaimer: Macintosh Garden does not claim rights to any software on the site. To the best of our knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us and we will remove them accordingly. Thank you for your attention."
     ],
-    "download_file": "glider_pro_1_1_2.zip",
-    "download_md5": "1023ad632df89c19cb03067fa8e2558b",
-    "download_label": "DL #2 (2010-11-23): glider_pro_1_1_2.zip",
+    "download_file": "Glider_42.SIT",
+    "download_md5": "d8d3b629a1fba76e1362b132232fe412",
+    "download_label": "DL #1 (2009-06-06): Glider 4.0 Pack (4.06 for 68K, 4.09 for PPC, More Glider, Houses from the Web)",
     "uploaded_by": "",
-    "description": "Fly a paper glider through a house on the air from heating vents. Avoid the furniture, the toasters and the cats.",
-    "notes": "Credits from the Macintosh Garden page: Author John Calhoun, Publisher Casady & Greene, 1994. The archive holds the 1.1.2 CD image. We run the 68k code of the fat app with three houses."
+    "description": "Fly a paper airplane through an obstacle-filled house by catching lift from air vents. Avoid the tables, shelves, balloons, paper 'copters and darts. This was the first commercial release of John Calhoun's Glider.",
+    "notes": "copyright[0] is the 'vers' 1 resource. We run 4.06, the 68k build, with 'The House' and 'The House 2'. The game needs a 1-bit or 16-color screen, so the page starts Executor with --bpp 4."
   },
   "ev-nova": {
     "title": "EV Nova",

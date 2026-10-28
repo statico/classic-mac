@@ -1,0 +1,17 @@
+Glider 4/B&W Art: type=GLbk creator=GLID data=0 rsrc=169791
+  types: PICTx15 deepx1
+  68k CODE: no; PPC cfrg: no
+Glider 4/Color Art: type=GLbk creator=GLID data=0 rsrc=473786
+  types: PICTx15 deepx1
+  68k CODE: no; PPC cfrg: no
+Glider 4/Editor History: type=ttro creator=ttxt data=1324 rsrc=0
+Glider 4/Glider 4.06: type=APPL creator=GLID data=0 rsrc=549249
+  types: ALRTx4 BNDLx1 CODEx6 CURSx13 DATAx1 DITLx10 DLOGx6 DRELx1 FONDx4 FONTx7 FREFx4 GLIDx1 Gprfx1 ICN#x4 ICONx51 LSPx1 MENUx4 PAT#x1 PICTx15 SIZEx2 SMSDx30 STR#x5 WINDx1 ZEROx1 actbx3 acurx1 cicnx51 clutx1 crsrx13 dctbx3 hfdrx1 hmnux4 icl4x4 icl8x4 ics#x4 ics4x4 ics8x4 mctbx4 plttx1 ppatx2 versx2 wctbx1
+  CODE: 0:896 1:11408 2:28754 3:21122 4:15982 5:9868
+  68k CODE: yes; PPC cfrg: no
+Glider 4/Glider Gravis Settings: type=MSet creator=MSmv data=0 rsrc=577
+  types: MSsux1
+  68k CODE: no; PPC cfrg: no
+Glider 4/Glider History: type=ttro creator=ttxt data=3023 rsrc=0
+Glider 4/The House: type=GLhs creator=GLed data=13830 rsrc=0
+Glider 4/The House 2: type=GLhs creator=GLed data=13830 rsrc=0

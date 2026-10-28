@@ -6,6 +6,9 @@ node_modules/
 web/dbg/
 # EV Nova's prepared tree is 170 MB. The web bundle is in git as 45 MB parts.
 games/prepared/ev-nova/
+# The same for the Oregon Trail CD (200 MB prepared, 100 MB bundle).
+games/prepared/oregon-trail-cd/
+web/executor/games/oregon-trail-cd.data
 web/executor/games/ev-nova.data
 .vercel
 .work/

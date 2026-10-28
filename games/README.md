@@ -7,7 +7,7 @@ Classic Mac 68k games prepared for Executor. The files are kept for archive and 
 ```sh
 brew install unar hfsutils
 scripts/fetch-games.sh            # download (MD5-checked) + extract into games/raw/ (gitignored)
-for g in "scarab-of-ra:Scarab of Ra" "dark-castle:Dark Castle" "simcity-2000:SimCity 2000" "glider-pro:Glider PRO"; do
+for g in "scarab-of-ra:Scarab of Ra" "dark-castle:Dark Castle" "simcity-2000:SimCity 2000" "glider-4:Glider 4" "oregon-trail-cd:Oregon Trail"; do
   python3 -I scripts/prepare-games.py "games/raw/${g%%:*}/extracted" "games/prepared/${g%%:*}" "${g#*:}"
 done
 ```
@@ -53,13 +53,22 @@ Verification: we read each `.hfv` back with python `machfs` and unpacked each `.
   - The CD Collection folder (`simcity2000.sit`, 8.8 MB, MD5 `8b4ac368b906c38174110eaa4fcc6286`) contains `SimCity 2000® 1.2` (data 416,129 + rsrc 3,812,611). This is a fat build: the data fork is a PEF (`Joy!peff`) with a `cfrg`, and the resource fork has full 68k CODE 0–3 (CODE 2 is 280 KB, 297 KB of CODE in total). It also contains the SCURK app and many cities. The download is in `games/raw/simcity-2000-cd/` if a later version is wanted.
   - We avoided the Special Edition (75 MB CD).
 
-## Glider PRO 1.1.2
+## Glider 4.06
 
-- Source: https://macintoshgarden.org/games/glider-pro, `glider_pro_1_1_2.zip` (46.4 MB, MD5 `1023ad632df89c19cb03067fa8e2558b`). It holds a raw HFS CD image (`GliderPRO_1_1_2.toast`, no partition map).
-- Author: John Calhoun (Casady & Greene, 1994–96).
-- Files: `Glider PRO/Glider PRO™` (APPL/ozm5, data 384,604 + rsrc 3,448,010) and three houses in `Houses/`: Slumberland, Demo House and Castle o' the Air, each with its `.mov` file.
-- Resources: fat app. The data fork is a PEF (`Joy!peff`) with a `cfrg`, and the resource fork has 68k CODE 0–14. Executor runs the 68k code unless you pass `--ppc`.
-- We did not use the 1.0.x floppies (`glider_pro_v100_v101_v102.sit`), because they hold only a StuffIt installer.
+- Source: https://macintoshgarden.org/games/glider-40, DL #1 `Glider_42.SIT` (1.4 MB, MD5 `d8d3b629a1fba76e1362b132232fe412`), the "Glider 4.0 Pack".
+- Author: John Calhoun (Casady & Greene, 1991). The `vers` resource says "Glider 4.06™ ©1991 Casady & Greene, Inc.".
+- What is in the archive: `Glider 4.06 - for 68K Macs`, `Glider 4.09 - for PPC Macs`, `More Glider™`, `Room Editor 1.04` and `Houses from the Web`. We use the 68K folder only.
+- Files: `Glider 4/Glider 4.06` (APPL/GLID, rsrc 549,249), `B&W Art`, `Color Art`, `The House` and `The House 2`.
+- Resources: CODE 0–5. 68k only, no `cfrg`.
+- The game wants a 1-bit or 16-color screen, so the page starts Executor with `--bpp 4`. Mouse control is the default (Options > Controls).
+
+## The Oregon Trail CD 1.2
+
+- Source: https://macintoshgarden.org/games/the-oregon-trail-cd, DL #1 `OregonTrail1.2.sit_.bin` (45.8 MB, MD5 `28a8aae1c5a454ea070896ed1cef3c3c`). It holds `OregonTrail(1.2).img`, a raw HFS image of the CD.
+- Publisher: MECC (1993). The Garden lists The Learning Company, which bought MECC later.
+- Files: `Oregon Trail/Oregon Trail CD` (APPL/OTCD, rsrc 499,083) and `Oregon Data/` (Graphics 1–4, Guide Book 1–3, Oregon Sound 1–5). We leave out the HyperCard user's guide.
+- Resources: CODE 0–23. 68k only, no `cfrg`.
+- The game data is about 100 MB, so git keeps only the web bundle, as three 45 MB parts (`web/executor/games/oregon-trail-cd.data.aa` to `.ac`). `games/prepared/oregon-trail-cd/` is not in git.
 
 ## EV Nova 1.0.2
 

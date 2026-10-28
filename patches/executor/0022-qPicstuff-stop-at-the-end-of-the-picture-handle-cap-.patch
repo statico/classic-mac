@@ -1,0 +1,66 @@
+From ba2857a85a9f552cdb09609ef8522686bf2fc381 Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Tue, 27 Oct 2026 22:04:43 -0700
+Subject: [PATCH] qPicstuff: stop at the end of the picture handle; cap huge
+ regions
+
+A PICT in The Oregon Trail CD has 16 bytes of junk after its header.
+The parse then reads a reserved opcode, a 54,952-byte clip region and
+goes past the end of the handle. Executor regions cannot exceed 32K,
+so MapRgn and OffsetRgn crashed. Now DrawPicture stops at the end of
+the handle, and a region over 32K keeps only its bounding box.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/quickdraw/qPicstuff.cpp | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/quickdraw/qPicstuff.cpp b/src/quickdraw/qPicstuff.cpp
+index ff67fa5d..9e773fce 100644
+--- a/src/quickdraw/qPicstuff.cpp
++++ b/src/quickdraw/qPicstuff.cpp
+@@ -1087,6 +1087,13 @@ static void eatRegion(RgnHandle rh, Size hs)
+                       hs - sizeof(INTEGER));
+     (*rh)->rgnSize = hs;
+     nextbytep += hs - sizeof(INTEGER);
++    if(hs > 0x7FFF)
++    {
++        /* Our regions can't exceed 32K (the top bit of rgnSize is a
++           flag), so keep only the bounding box. */
++        SetHandleSize((Handle)rh, RGN_SMALL_SIZE);
++        (*rh)->rgnSize = RGN_SMALL_SIZE;
++    }
+ }
+ 
+ static void eatRect(Rect *rp)
+@@ -1594,6 +1601,7 @@ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+     Pattern ourpattern;
+     Str255 ourstring;
+     uint16_t hsize; /* region, polygon and data lengths can exceed 32K */
++    unsigned char *picend;
+     void (*f)();
+     INTEGER vers;
+     Fixed scaleh, scalev, tempf;
+@@ -1747,6 +1755,9 @@ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+     else
+         procp = 0;
+     nextbytep = (unsigned char *)(&(*pic)->picSize + 5);
++    /* Some pictures (The Oregon Trail CD) have junk that makes us read
++       past the end of the handle; stop there. */
++    picend = (unsigned char *)*pic + GetHandleSize((Handle)pic);
+     hand = 0;
+ 
+     dstpicframe = *destrp;
+@@ -1766,7 +1777,8 @@ void Executor::C_DrawPicture(PicHandle pic, const Rect *destrp)
+ 
+     scaleh = FixRatio(RECT_WIDTH(&dstpicframe), RECT_WIDTH(&srcpicframe));
+     scalev = FixRatio(RECT_HEIGHT(&dstpicframe), RECT_HEIGHT(&srcpicframe));
+-    while((opcode = nextop(vers)) != opEndPic)
++    while((procp || nextbytep < picend)
++          && (opcode = nextop(vers)) != opEndPic)
+     {
+         wp = words;
+         pp = points;
+-- 
+2.56.0
+
