@@ -54,9 +54,12 @@ const KEYS = {
   F1:0x7A,ArrowLeft:0x7B,ArrowRight:0x7C,ArrowDown:0x7D,ArrowUp:0x7E,
 };
 
+// executor.js and executor.wasm must come from the same build, so caches key
+// on this. scripts/build-executor-wasm.sh sets it to the wasm's md5.
+const BUILD = '4815dadc';
 var Module = {
   arguments: [],
-  locateFile: (f) => f.endsWith('.data') ? (dataURL || 'games/' + f) : f,
+  locateFile: (f) => f.endsWith('.data') ? (dataURL || 'games/' + f) : f + '?v=' + BUILD,
   print: (t) => console.log(t),
   printErr: (t) => console.warn(t),
   setStatus: (t) => { status.textContent = t; },
@@ -164,7 +167,7 @@ if (!game) {
 } else {
   (async () => {
     if (game.parts) dataURL = await joinParts(game.parts);
-    for (const src of ['games/' + gameId + '.js', 'executor.js']) {
+    for (const src of ['games/' + gameId + '.js?v=' + BUILD, 'executor.js?v=' + BUILD]) {
       const s = document.createElement('script');
       s.src = src; s.async = false;
       document.body.appendChild(s);

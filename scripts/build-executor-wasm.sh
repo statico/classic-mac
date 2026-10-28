@@ -51,4 +51,7 @@ emcmake cmake -S "$V/executor" -B "$V/build-executor-wasm" -G Ninja -DCMAKE_BUIL
   -DCMAKE_FIND_ROOT_PATH="$V/boost-wasm" -DCMAKE_C_FLAGS="-fexceptions" -DCMAKE_CXX_FLAGS="-fexceptions"
 ninja -C "$V/build-executor-wasm" executor-wasm
 cp "$V/build-executor-wasm/executor.js" "$V/build-executor-wasm/executor.wasm" "$ROOT/web/executor/"
+# The page loads executor.{js,wasm}?v=BUILD so caches never mix two builds.
+build=$(python3 -c 'import hashlib,sys; print(hashlib.md5(open(sys.argv[1],"rb").read()).hexdigest()[:8])' "$ROOT/web/executor/executor.wasm")
+sed -i.bak "s/^const BUILD = '.*';/const BUILD = '$build';/" "$ROOT/web/executor/index.html" && rm "$ROOT/web/executor/index.html.bak"
 echo "Built $ROOT/web/executor/executor.{js,wasm}"
