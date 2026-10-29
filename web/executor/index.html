@@ -56,7 +56,7 @@ const KEYS = {
 
 // executor.js and executor.wasm must come from the same build, so caches key
 // on this. scripts/build-executor-wasm.sh sets it to the wasm's md5.
-const BUILD = '4815dadc';
+const BUILD = '156a211c';
 var Module = {
   arguments: [],
   locateFile: (f) => f.endsWith('.data') ? (dataURL || 'games/' + f) : f + '?v=' + BUILD,
@@ -126,9 +126,13 @@ function startAudio() {
   }
   if (audio.state !== 'running') audio.resume().catch(() => {});
 }
+// iPhone mutes web audio when the ring switch is on silent, unless the page
+// says it plays media.
+if (navigator.audioSession) navigator.audioSession.type = 'playback';
 startAudio();
-canvas.addEventListener('pointerdown', startAudio);
-canvas.addEventListener('keydown', startAudio);
+// Safari starts audio only from some events (touchend, click), Chrome from others.
+for (const t of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'])
+  addEventListener(t, startAudio, { capture: true, passive: true });
 
 function macPoint(e) {
   const r = canvas.getBoundingClientRect();
@@ -155,7 +159,7 @@ canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.macKey = (down, code) => {
   const k = KEYS[(game.keys && game.keys[code]) || code];
   if (k === undefined || !Module._executor_key) return false;
-  if (down) startAudio();
+  startAudio();
   Module._executor_key(down ? 1 : 0, k);
   return true;
 };

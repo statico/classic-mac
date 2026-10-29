@@ -1,0 +1,61 @@
+From d6fc33c82c6402fadd5c89a348777f7c7fb4ea70 Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Thu, 29 Oct 2026 10:25:03 -0700
+Subject: [PATCH] sound: play 16-bit and stereo double buffers
+
+SndPlayDoubleBuffer data went to the 8-bit mono mixer as-is.  EV Nova
+plays 16-bit stereo, so its silence (0x0000) mixed in as full negative
+and its samples as byte noise: loud and scratchy.  Mix the channels down
+and keep the high byte of 16-bit samples.
+
+A new channel's previous sample also starts at 0x80 (silence); NewPtr
+memory is not cleared, and the gap filler in resample() used it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/sound/sound.cpp | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/src/sound/sound.cpp b/src/sound/sound.cpp
+index 5728c8fd..48e53c79 100644
+--- a/src/sound/sound.cpp
++++ b/src/sound/sound.cpp
+@@ -426,6 +426,7 @@ OSErr Executor::C_SndNewChannel(GUEST<SndChannelPtr> *chanpp, INTEGER synth,
+             chanp->firstMod = (Ptr)NewPtr(sizeof(ModifierStub));
+             SND_CHAN_TIME(chanp) = 0;
+             SND_CHAN_CURRENT_START(chanp) = 0;
++            SND_CHAN_PREV_SAMP(chanp) = 0x80; /* silence; NewPtr memory is not cleared */
+             chanp->callBack = userroutinep;
+             /*chanp->userInfo = 0;*/
+             chanp->wait = 0;
+@@ -749,6 +750,27 @@ do_current_db(SndChannelPtr chanp, HungerInfo info)
+     }
+     sp = dbp->dbSoundData;
+ 
++    /* resample() mixes 8-bit offset-binary mono.  Mix stereo frames down
++       and keep the high byte of 16-bit (signed, big-endian) samples;
++       EV Nova plays 16-bit stereo. */
++    int nc = std::max<int>(dbhp->dbhNumChannels, 1);
++    int bytes = dbhp->dbhSampleSize == 16 ? 2 : 1;
++    if(nc > 1 || bytes > 1)
++    {
++        uint8_t *mono = (uint8_t *)alloca(std::max<int>(dbp->dbNumFrames, 1));
++        for(int i = 0; i < dbp->dbNumFrames; i++)
++        {
++            int sum = 0;
++            for(int c = 0; c < nc; c++)
++            {
++                const unsigned char *q = sp + (i * nc + c) * bytes;
++                sum += bytes == 2 ? (int8_t)q[0] : q[0] - 128;
++            }
++            mono[i] = sum / nc + 128;
++        }
++        sp = mono;
++    }
++
+ #if 0
+   warning_sound_log ("curs %g t %d t3 %d dur %d rate %g",
+ 		     f2d (SND_CHAN_CURRENT_START (chanp)),
+-- 
+2.56.0
+

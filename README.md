@@ -36,7 +36,7 @@ Some fixes that the games needed:
 - **Files and math:** local folders accept range locks, and SANE extended-precision floats convert correctly on WebAssembly. The floppy version of Oregon Trail needed both.
 - **Dark Castle:** the game stores flags in the high byte of pointers (24-bit addressing).
 - **EV Nova:** it needed a small Display Manager, screen gamma calls, `GetProcessInformation`, `ParseSndHeader`, clipping for GWorlds larger than the screen, and a decoder for QuickTime "Animation" pictures.
-- **Sound:** a small sound driver sends the Sound Manager mix, the old Sound Driver and the Mac Plus sound buffer at `SoundBase` to Web Audio. Browsers start sound only after a user action, so sound starts at the first click or key press in the game.
+- **Sound:** a small sound driver sends the Sound Manager mix, the old Sound Driver and the Mac Plus sound buffer at `SoundBase` to Web Audio. The mixer works in 8-bit mono, so 16-bit and stereo double buffers (EV Nova) are mixed down first. Browsers start sound only after a user action, so sound starts at the first click, tap or key press in the game.
 
 ## Build it yourself
 
