@@ -22,7 +22,7 @@ const GAMES = {
   // Scarab moves with the numeric keypad; send the arrow keys there too.
   'scarab-of-ra': { app: 'Scarab of RA 1.4/Scarab of RA 1.4', args: [],
                     keys: { ArrowUp: 'Numpad8', ArrowLeft: 'Numpad4', ArrowRight: 'Numpad6', ArrowDown: 'Numpad2' } },
-  'simcity-2000': { app: 'SimCity 2000/SimCity2000™ 1.1', args: ['--applzone', '16M', '--bpp', '8'] },
+  'simcity-2000': { app: 'SimCity 2000/SimCity2000™ 1.1', args: ['--applzone', '16M', '--bpp', '8', '--stilldown-ms', '150'] },
   'dark-castle':  { app: 'Dark Castle/Dark Castle', args: ['--bpp', '1'] },
   'oregon-trail-cd': { app: 'Oregon Trail/Oregon Trail CD', parts: ['aa', 'ab', 'ac'], args: ['--bpp', '8'] },
   'shufflepuck-cafe': { app: 'Shufflepuck Cafe/Shufflepuck Cafe', args: ['--bpp', '1'] },
@@ -56,7 +56,7 @@ const KEYS = {
 
 // executor.js and executor.wasm must come from the same build, so caches key
 // on this. scripts/build-executor-wasm.sh sets it to the wasm's md5.
-const BUILD = '06cd10c5';
+const BUILD = '1ef1e2e2';
 var Module = {
   arguments: [],
   locateFile: (f) => f.endsWith('.data') ? (dataURL || 'games/' + f) : f + '?v=' + BUILD,

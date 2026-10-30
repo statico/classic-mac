@@ -1,0 +1,96 @@
+From 4eae20d0a50cffe15a5b6824d888a22945d4c4e1 Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Thu, 29 Oct 2026 22:01:00 -0700
+Subject: [PATCH] StillDown: optional pause so tracking loops run near hardware
+ speed
+
+SimCity 2000's centering tool scrolls the view on every pass of its
+StillDown loop. At emulator speed a short click made about 20 passes and
+pushed the map to its edge. --stilldown-ms N pauses N ms before the check.
+---
+ src/main.cpp        |  2 ++
+ src/prefs/options.h |  2 ++
+ src/toolevent.cpp   | 22 +++++++++++++++++++++-
+ 3 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/src/main.cpp b/src/main.cpp
+index fce6f86b..7ac6da7c 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -19,6 +19,7 @@
+ #include <mman/mman.h>
+ #include <menu/menu.h>
+ #include <prefs/prefs.h>
++#include <prefs/options.h>
+ #include <commandline/flags.h>
+ #include <time/syncint.h>
+ #include <vdriver/vdriver.h>
+@@ -224,6 +225,7 @@ static std::vector<std::string> parseCommandLine(int& argc, char **argv)
+             ->validator([](Ratio r) { return r.numer > 0 && r.denom > 0; })
+             ->notifier([&](Ratio r) { ROMlib_SetTimewarp(r.numer, r.denom); })
+         , "speed up or slow down time")
++        ("stilldown-ms", po::value(&ROMlib_stilldown_ms), "pause this many ms each time StillDown reports the button down, so mouse-tracking loops run near the speed of the original hardware")
+         ;
+     desc.add(testing);
+ 
+diff --git a/src/prefs/options.h b/src/prefs/options.h
+index a0337def..5b57e312 100644
+--- a/src/prefs/options.h
++++ b/src/prefs/options.h
+@@ -22,5 +22,7 @@ extern int ROMlib_AppleChar;
+ extern bool ROMlib_rect_screen;
+ extern bool ROMlib_rect_buttons;
+ 
++extern int ROMlib_stilldown_ms;
++
+ }
+ #endif
+diff --git a/src/toolevent.cpp b/src/toolevent.cpp
+index 67fe0a6b..2c8c9b6d 100644
+--- a/src/toolevent.cpp
++++ b/src/toolevent.cpp
+@@ -49,8 +49,15 @@
+ 
+ #include <algorithm>
+ 
++#include <chrono>
++#include <thread>
++
+ using namespace Executor;
+ 
++#ifdef __EMSCRIPTEN__
++void executor_wasm_yield(int ms); // config/front-ends/wasm
++#endif
++
+ /* #define	EVENTTRACE */
+ 
+ #if defined(EVENTTRACE)
+@@ -544,11 +551,24 @@ Boolean Executor::C_Button()
+ 
+ // Note: StillDown not coded per IM Macintosh Toolbox Essentials 2-109
+ //   ... because it's wrong. Trust the original IM instead.
++int Executor::ROMlib_stilldown_ms;
++
+ Boolean Executor::C_StillDown() /* IMI-259 */
+ {
+     EventRecord evt;
+ 
+-    return Button() ? !OSEventAvail((mDownMask | mUpMask), &evt) : false;
++    // On real hardware each pass of a tracking loop took a while to draw.
++    // SimCity 2000's centering tool moves the view on every pass, so at
++    // emulator speed a short click scrolls the map to its edge. Pause
++    // before the check, so a click shorter than the pause gives one pass.
++    if(ROMlib_stilldown_ms > 0 && Button())
++#ifdef __EMSCRIPTEN__
++        executor_wasm_yield(ROMlib_stilldown_ms);
++#else
++        std::this_thread::sleep_for(std::chrono::milliseconds(ROMlib_stilldown_ms));
++#endif
++    Boolean retval = Button() ? !OSEventAvail((mDownMask | mUpMask), &evt) : false;
++    return retval;
+ }
+ 
+ // Note: Button not coded per IM Macintosh Toolbox Essentials 2-110
+-- 
+2.56.0
+
