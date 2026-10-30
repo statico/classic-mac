@@ -1,0 +1,12 @@
+{
+  "headers": [
+    {
+      "source": "/executor/executor.(wasm|js)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/executor/games/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, s-maxage=2592000" }]
+    }
+  ]
+}
