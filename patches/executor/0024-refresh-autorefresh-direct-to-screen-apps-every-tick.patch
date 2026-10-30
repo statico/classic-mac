@@ -1,0 +1,28 @@
+From 6807e4143a1c0cb5e402cfc0edf732e869f01458 Mon Sep 17 00:00:00 2001
+From: Claude Code <noreply@anthropic.com>
+Date: Thu, 29 Oct 2026 20:40:22 -0700
+Subject: [PATCH] refresh: autorefresh direct-to-screen apps every tick
+
+Executor checks for apps that write straight to the framebuffer and
+then copies changes every 10 ticks, which is 6 fps. EV Nova draws its
+space view that way, so it looked like a slide show. Refresh every tick.
+---
+ src/vdriver/refresh.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/vdriver/refresh.cpp b/src/vdriver/refresh.cpp
+index fea017c5..19241e44 100644
+--- a/src/vdriver/refresh.cpp
++++ b/src/vdriver/refresh.cpp
+@@ -28,7 +28,7 @@ static void C_handle_refresh()
+ 
+     /* If refresh is off, see if we need to turn it on. */
+     if(!ROMlib_refresh && do_autorefresh_p && autodetect_refresh())
+-        set_refresh_rate(10);
++        set_refresh_rate(1); // 60 fps; 10 ticks made direct-to-screen games (EV Nova) crawl at 6 fps
+ 
+     if(!ROMlib_refresh)
+     {
+-- 
+2.56.0
+

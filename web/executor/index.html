@@ -56,7 +56,7 @@ const KEYS = {
 
 // executor.js and executor.wasm must come from the same build, so caches key
 // on this. scripts/build-executor-wasm.sh sets it to the wasm's md5.
-const BUILD = '156a211c';
+const BUILD = '06cd10c5';
 var Module = {
   arguments: [],
   locateFile: (f) => f.endsWith('.data') ? (dataURL || 'games/' + f) : f + '?v=' + BUILD,
